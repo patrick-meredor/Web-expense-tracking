@@ -114,7 +114,7 @@ export function TransactionForm({ onSubmit }: TransactionFormProps) {
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded-lg bg-emerald-600 py-3 text-base font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
+          className="w-full rounded-lg bg-gradient-to-br from-emerald-600 to-teal-700 py-3 text-base font-semibold text-white transition hover:cursor-pointer disabled:opacity-50"
         >
           {submitting ? "Adding…" : "Add transaction"}
         </button>

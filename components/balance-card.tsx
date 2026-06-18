@@ -43,7 +43,7 @@ export function BalanceCard({ balance, onAdjust, loading }: BalanceCardProps) {
             onClick={() => setOpen(true)}
             className="rounded-lg bg-white/15 px-4 py-2 text-sm font-medium backdrop-blur transition hover:bg-white/25"
           >
-            Set / adjust balance
+            Balance
           </button>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-2 lg:flex-row">
