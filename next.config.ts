@@ -1,9 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: 'export', // 👈 Tells Next.js to generate static HTML/CSS/JS
+  output: 'export',
+  // 👇 Add your exact GitHub repository folder name here with a leading slash
+  basePath: '/Web-expense-tracking', 
   images: {
-    unoptimized: true, // 👈 Required because GitHub Pages doesn't support Next.js image optimization
+    unoptimized: true,
   },
 };
 
