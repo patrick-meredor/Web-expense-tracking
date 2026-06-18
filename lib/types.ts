@@ -1,4 +1,4 @@
-export type Category = "Food" | "Bills" | "Transport" | "Income";
+export type Category = "Food" | "Bills" | "Transport" | "Income" | "Other";
 
 export type Wallet = {
   id: number;

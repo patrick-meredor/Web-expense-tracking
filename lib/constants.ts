@@ -5,6 +5,7 @@ export const CATEGORIES: Category[] = [
   "Bills",
   "Transport",
   "Income",
+  "Other",
 ];
 
 export const CATEGORY_COLORS: Record<Category, string> = {
@@ -12,4 +13,5 @@ export const CATEGORY_COLORS: Record<Category, string> = {
   Bills: "bg-blue-900/40 text-blue-200",
   Transport: "bg-violet-900/40 text-violet-200",
   Income: "bg-emerald-900/40 text-emerald-200",
+  Other: "bg-gray-900/40 text-gray-200",
 };

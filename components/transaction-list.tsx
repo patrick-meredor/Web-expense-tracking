@@ -19,7 +19,7 @@ export function TransactionList({
     return (
       <section className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5 shadow-sm lg:flex lg:max-h-[calc(100vh-10rem)] lg:flex-col">
         <h2 className="text-lg font-semibold">Ledger</h2>
-        <p className="mt-4 text-sm text-zinc-400">Loading transactions…</p>
+        <p className="text-sm text-zinc-400">Loading transactions…</p>
       </section>
     );
   }
