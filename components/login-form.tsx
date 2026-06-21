@@ -1,7 +1,11 @@
+"use client"
+
+import { useActionState } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { ChevronLeft } from "lucide-react"
+import { handleLogin, FormState } from "@/app/login/actions"
 
 import {
   Card,
@@ -18,10 +22,18 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 
+const initialState: FormState = {
+  error: null,
+  success: false,
+}
+
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  // Use React 19's useActionState hook
+  const [state, formAction, isPending] = useActionState(handleLogin, initialState)
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
@@ -32,7 +44,6 @@ export function LoginForm({
           >
             <ChevronLeft className="h-5 w-5" />
           </Link>
-
           <div>
             <CardTitle>Login to your account</CardTitle>
             <CardDescription>
@@ -41,12 +52,18 @@ export function LoginForm({
           </div>
         </CardHeader>
         <CardContent>
-          <form>
+          <form action={formAction}>
             <FieldGroup>
+              {state.error && (
+                <div className="text-sm text-red-500 bg-red-500/10 p-3 rounded-md border border-red-500/20">
+                  {state.error}
+                </div>
+              )}
               <Field>
                 <FieldLabel htmlFor="email">Email</FieldLabel>
                 <Input
                   id="email"
+                  name="email" // Added name attribute
                   type="email"
                   placeholder="m@example.com"
                   required
@@ -62,10 +79,17 @@ export function LoginForm({
                     Forgot your password?
                   </a>
                 </div>
-                <Input id="password" type="password" required />
+                <Input 
+                  id="password" 
+                  name="password" // Added name attribute
+                  type="password" 
+                  required 
+                />
               </Field>
               <Field>
-                <Button type="submit">Login</Button>
+                <Button type="submit" disabled={isPending}>
+                  {isPending ? "Logging in..." : "Login"}
+                </Button>
                 <FieldDescription className="text-center">
                   Don&apos;t have an account? <a href="#">Sign up</a>
                 </FieldDescription>

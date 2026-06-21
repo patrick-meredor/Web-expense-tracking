@@ -1,29 +1,39 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { BalanceCard } from "@/components/balance-card";
 import { TransactionForm } from "@/components/transaction-form";
 import { TransactionList } from "@/components/transaction-list";
-import { supabase } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 import type { Category, Transaction, Wallet } from "@/lib/types";
 
 export function ExpenseTracker() {
+  const router = useRouter();
+  const supabase = createClient();
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const loadData = useCallback(async () => {
     setError(null);
 
-    const [walletResult, txResult] = await Promise.all([
+    const [walletResult, txResult, userResult] = await Promise.all([
       supabase.from("wallet").select("*").eq("id", 1).single(),
       supabase
         .from("transactions")
         .select("*")
         .order("date", { ascending: false })
         .order("created_at", { ascending: false }),
+      supabase.auth.getUser(),
     ]);
+
+    if (userResult.data?.user) {
+      setUserEmail(userResult.data.user.email ?? null);
+    }
 
     if (walletResult.error) {
       setError(
@@ -57,6 +67,18 @@ export function ExpenseTracker() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  async function handleSignOut() {
+    setLoggingOut(true);
+    try {
+      await supabase.auth.signOut();
+      router.push("/login");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to sign out.");
+      setLoggingOut(false);
+    }
+  }
 
   async function handleAdjustBalance(newBalance: number) {
     const { error: updateError } = await supabase
@@ -121,33 +143,61 @@ export function ExpenseTracker() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-lg px-4 py-6 sm:py-10">
-      <header className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">Expense Tracker</h1>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          Track income and spending in one place.
-        </p>
+    <div className="min-h-screen bg-zinc-950 flex flex-col text-zinc-100">
+      {/* Premium Header/Navbar */}
+      <header className="sticky top-0 z-50 w-full border-b border-zinc-900 bg-zinc-950/80 backdrop-blur-md">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-2">
+            <span className="font-family-pixel text-base sm:text-lg font-bold tracking-wider text-emerald-400">
+              EXPENSE TRACKER
+            </span>
+          </div>
+          <div className="flex items-center gap-4">
+            {userEmail && (
+              <span className="hidden text-sm text-zinc-400 font-medium md:inline-block">
+                {userEmail}
+              </span>
+            )}
+            <button
+              onClick={handleSignOut}
+              disabled={loggingOut}
+              className="rounded-lg border border-red-800 bg-red-800/40 px-3.5 py-1.5 text-xs font-semibold text-zinc-300 transition duration-200 hover:bg-red-850 hover:text-white disabled:opacity-50 hover:cursor-pointer"
+            >
+              {loggingOut ? "Logging out..." : "Log out"}
+            </button>
+          </div>
+        </div>
       </header>
 
-      {error && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/50 dark:text-red-300">
-          {error}
-        </div>
-      )}
+      {/* Main Content Area */}
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
+        {error && (
+          <div className="mb-6 rounded-xl border border-red-950 bg-red-950/30 px-4 py-3.5 text-sm text-red-400 shadow-sm">
+            {error}
+          </div>
+        )}
 
-      <div className="space-y-5">
-        <BalanceCard
-          balance={wallet?.balance ?? 0}
-          onAdjust={handleAdjustBalance}
-          loading={loading}
-        />
-        <TransactionForm onSubmit={handleAddTransaction} />
-        <TransactionList
-          transactions={transactions}
-          loading={loading}
-          onDelete={handleDeleteTransaction}
-        />
-      </div>
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 items-start">
+          {/* Left Column: Balance & Quick Add */}
+          <div className="space-y-6 lg:col-span-5">
+            <BalanceCard
+              balance={wallet?.balance ?? 0}
+              onAdjust={handleAdjustBalance}
+              loading={loading}
+            />
+            <TransactionForm onSubmit={handleAddTransaction} />
+          </div>
+
+          {/* Right Column: Ledger (Transaction List) */}
+          <div className="lg:col-span-7">
+            <TransactionList
+              transactions={transactions}
+              loading={loading}
+              onDelete={handleDeleteTransaction}
+            />
+          </div>
+        </div>
+      </main>
     </div>
   );
 }
