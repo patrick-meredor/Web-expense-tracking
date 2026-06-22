@@ -14,7 +14,7 @@ create table if not exists transactions (
   id uuid primary key default gen_random_uuid(),
   amount numeric(12, 2) not null,
   description text not null default '',
-  category text not null check (category in ('Food', 'Bills', 'Transport', 'Income', 'Other')),
+  category text not null check (category in ('Food', 'Bills', 'Transport', 'Income', 'Other', 'Bank Transfer', 'Shopping', 'Travel', 'Education', 'Entertainment', 'Health')),
   date date not null default current_date,
   created_at timestamptz not null default now()
 );

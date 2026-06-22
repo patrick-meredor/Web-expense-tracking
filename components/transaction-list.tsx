@@ -46,9 +46,8 @@ export function TransactionList({
   }
 
   return (
-    <section className="rounded-2xl border border-zinc-900 bg-zinc-900/40 p-6 shadow-xl backdrop-blur-md lg:flex lg:max-h-[calc(100vh-12rem)] lg:flex-col justify-between">
-      <div>
-        <div className="shrink-0 pb-1">
+    <section className="rounded-2xl border border-zinc-900 bg-zinc-900/40 p-6 shadow-xl backdrop-blur-md lg:flex lg:max-h-[calc(100vh-1rem)] lg:flex-col justify-between">
+      <div className="shrink-0 pb-1">
           <h2 className="text-base font-bold text-zinc-100 tracking-tight">Ledger</h2>
           <p className="mt-1 text-xs text-zinc-500">
             {totalItems === 0
@@ -118,7 +117,6 @@ export function TransactionList({
             })}
           </ul>
         ) : null}
-      </div>
 
       {/* 3. Pagination Controls UI */}
       {totalPages > 1 && (

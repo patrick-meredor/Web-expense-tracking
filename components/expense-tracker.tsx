@@ -19,8 +19,6 @@ export function ExpenseTracker() {
   const [loggingOut, setLoggingOut] = useState(false);
 
   const loadData = useCallback(async () => {
-    setError(null);
-
     const [walletResult, txResult, userResult] = await Promise.all([
       supabase.from("wallet").select("*").eq("id", 1).single(),
       supabase
@@ -30,6 +28,8 @@ export function ExpenseTracker() {
         .order("created_at", { ascending: false }),
       supabase.auth.getUser(),
     ]);
+
+    setError(null);
 
     if (userResult.data?.user) {
       setUserEmail(userResult.data.user.email ?? null);
@@ -65,6 +65,7 @@ export function ExpenseTracker() {
   }, [supabase]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData();
   }, [loadData]);
 

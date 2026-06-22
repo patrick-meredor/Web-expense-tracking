@@ -6,7 +6,7 @@ export const CATEGORIES: Category[] = [
   "Transport",
   "Income",
   "Other",
-  "BankTransfer",
+  "Bank Transfer",
   "Shopping",
   "Travel",
   "Education",
@@ -24,6 +24,6 @@ export const CATEGORY_COLORS = {
   Entertainment: "bg-pink-900/40 text-pink-200 border-pink-500/10",
   Health: "bg-cyan-900/40 text-cyan-200 border-cyan-500/10",
   Education: "bg-blue-900/40 text-blue-200 border-blue-500/10",
-  BankTransfer: "bg-zinc-800/60 text-zinc-300 border-zinc-700/20",
+  "Bank Transfer": "bg-slate-800/60 text-slate-300 border-slate-700/20",
   Other: "bg-zinc-900/40 text-zinc-400 border-zinc-800",
 };
