@@ -12,7 +12,7 @@ type TransactionListProps = {
 };
 
 // Define how many transactions to show per page
-const ITEMS_PER_PAGE = 5;
+const ITEMS_PER_PAGE = 4;
 
 export function TransactionList({
   transactions,

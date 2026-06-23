@@ -11,7 +11,8 @@ import type { Category, Transaction, Wallet } from "@/lib/types";
 export function ExpenseTracker() {
   const router = useRouter();
   const supabase = createClient();
-  const [wallet, setWallet] = useState<Wallet | null>(null);
+  const [wallets, setWallets] = useState<Wallet[]>([]);
+  const [activeWalletId, setActiveWalletId] = useState<number | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +21,7 @@ export function ExpenseTracker() {
 
   const loadData = useCallback(async () => {
     const [walletResult, txResult, userResult] = await Promise.all([
-      supabase.from("wallet").select("*").eq("id", 1).single(),
+      supabase.from("wallet").select("*").order("name"),
       supabase
         .from("transactions")
         .select("*")
@@ -51,10 +52,21 @@ export function ExpenseTracker() {
       return;
     }
 
-    setWallet({
-      ...walletResult.data,
-      balance: Number(walletResult.data.balance),
-    });
+    const loadedWallets = walletResult.data.map((w: any) => ({
+      ...w,
+      balance: Number(w.balance),
+    }));
+
+    setWallets(loadedWallets);
+    if (loadedWallets.length > 0) {
+      setActiveWalletId((prev) => {
+        if (prev !== null && loadedWallets.some((w) => w.id === prev)) {
+          return prev;
+        }
+        return loadedWallets[0].id;
+      });
+    }
+
     setTransactions(
       txResult.data.map((tx) => ({
         ...tx,
@@ -82,10 +94,11 @@ export function ExpenseTracker() {
   }
 
   async function handleAdjustBalance(newBalance: number) {
+    if (activeWalletId === null) return;
     const { error: updateError } = await supabase
       .from("wallet")
       .update({ balance: newBalance, updated_at: new Date().toISOString() })
-      .eq("id", 1);
+      .eq("id", activeWalletId);
 
     if (updateError) throw new Error(updateError.message);
     await loadData();
@@ -97,23 +110,27 @@ export function ExpenseTracker() {
     category: Category;
     date: string;
   }) {
+    if (activeWalletId === null) return;
     const { error: insertError } = await supabase.from("transactions").insert({
       amount: data.amount,
       description: data.description,
       category: data.category,
       date: data.date,
+      wallet_id: activeWalletId,
     });
 
     if (insertError) throw new Error(insertError.message);
 
-    const currentBalance = wallet?.balance ?? 0;
+    const activeWallet = wallets.find((w) => w.id === activeWalletId);
+    const currentBalance = activeWallet?.balance ?? 0;
+
     const { error: updateError } = await supabase
       .from("wallet")
       .update({
         balance: currentBalance + data.amount,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", 1);
+      .eq("id", activeWalletId);
 
     if (updateError) throw new Error(updateError.message);
     await loadData();
@@ -130,18 +147,38 @@ export function ExpenseTracker() {
 
     if (deleteError) throw new Error(deleteError.message);
 
-    const currentBalance = wallet?.balance ?? 0;
+    const targetWallet = wallets.find((w) => w.id === tx.wallet_id);
+    const currentBalance = targetWallet?.balance ?? 0;
+
     const { error: updateError } = await supabase
       .from("wallet")
       .update({
         balance: currentBalance - tx.amount,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", 1);
+      .eq("id", tx.wallet_id);
 
     if (updateError) throw new Error(updateError.message);
     await loadData();
   }
+
+  async function handleCreateWallet(name: string, initialBalance: number) {
+    const { data, error: insertError } = await supabase
+      .from("wallet")
+      .insert({ name, balance: initialBalance })
+      .select();
+
+    if (insertError) throw new Error(insertError.message);
+    await loadData();
+    if (data && data[0]) {
+      setActiveWalletId(data[0].id);
+    }
+  }
+
+  const activeWallet = wallets.find((w) => w.id === activeWalletId) || null;
+  const activeWalletTransactions = activeWalletId !== null
+    ? transactions.filter((t) => t.wallet_id === activeWalletId)
+    : [];
 
   return (
     <div className="min-h-screen bg-zinc-950 flex flex-col text-zinc-100">
@@ -182,8 +219,11 @@ export function ExpenseTracker() {
           {/* Left Column: Balance & Quick Add */}
           <div className="space-y-6 lg:col-span-5">
             <BalanceCard
-              balance={wallet?.balance ?? 0}
+              activeWallet={activeWallet}
+              wallets={wallets}
+              onSelectWallet={setActiveWalletId}
               onAdjust={handleAdjustBalance}
+              onCreateWallet={handleCreateWallet}
               loading={loading}
             />
             <TransactionForm onSubmit={handleAddTransaction} />
@@ -192,7 +232,7 @@ export function ExpenseTracker() {
           {/* Right Column: Ledger (Transaction List) */}
           <div className="lg:col-span-7">
             <TransactionList
-              transactions={transactions}
+              transactions={activeWalletTransactions}
               loading={loading}
               onDelete={handleDeleteTransaction}
             />
