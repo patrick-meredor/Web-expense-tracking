@@ -4,7 +4,7 @@ import { useActionState, useState } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { ChevronLeft, Eye, EyeOff } from "lucide-react"
+import { Home, Eye, EyeOff } from "lucide-react"
 import { handleLogin, FormState } from "@/app/login/actions"
 
 import {
@@ -38,16 +38,16 @@ export function LoginForm({
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
-        <CardHeader className="space-y-4">
+        <CardHeader className="space-y-4 flex flex-col items-center">
           <Link
             href="/"
-            className="w-fit text-muted-foreground hover:text-foreground border border-zinc-600 rounded"
+            className="w-fit text-muted-foreground hover:text-foreground rounded-full border border-zinc-500 p-2"
           >
-            <ChevronLeft className="h-5 w-5" />
+            <Home className="h-5 w-5 duration-300 ease-in-out" />
           </Link>
           <div>
-            <CardTitle>Login to your account</CardTitle>
-            <CardDescription>
+            <CardTitle className="font-family-pixel text-center">Login to your account</CardTitle>
+            <CardDescription className="text-center pt-2">
               Enter your email below to login to your account
             </CardDescription>
           </div>
