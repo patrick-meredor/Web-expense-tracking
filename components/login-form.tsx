@@ -1,10 +1,10 @@
 "use client"
 
-import { useActionState } from "react"
+import { useActionState, useState } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { ChevronLeft } from "lucide-react"
+import { ChevronLeft, Eye, EyeOff } from "lucide-react"
 import { handleLogin, FormState } from "@/app/login/actions"
 
 import {
@@ -33,6 +33,7 @@ export function LoginForm({
 }: React.ComponentProps<"div">) {
   // Use React 19's useActionState hook
   const [state, formAction, isPending] = useActionState(handleLogin, initialState)
+  const [showPassword, setShowPassword] = useState(false)
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -40,7 +41,7 @@ export function LoginForm({
         <CardHeader className="space-y-4">
           <Link
             href="/"
-            className="w-fit text-muted-foreground hover:text-foreground"
+            className="w-fit text-muted-foreground hover:text-foreground border border-zinc-600 rounded"
           >
             <ChevronLeft className="h-5 w-5" />
           </Link>
@@ -70,29 +71,28 @@ export function LoginForm({
                 />
               </Field>
               <Field>
-                <div className="flex items-center">
-                  <FieldLabel htmlFor="password">Password</FieldLabel>
-                  <a
-                    href="#"
-                    className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
-                  >
-                    Forgot your password?
-                  </a>
-                </div>
+              <FieldLabel htmlFor="password">Password</FieldLabel>
+              <div className="relative">
                 <Input 
                   id="password" 
                   name="password" // Added name attribute
-                  type="password" 
+                  type={showPassword ? "text" : "password"} 
                   required 
                 />
+                <button
+                  type="button"
+                  className="absolute right-2 top-1/2 -translate-y-1/2"
+                  onClick={() => setShowPassword(!showPassword)}
+                  disabled={isPending}
+                >
+                  {showPassword ? <EyeOff className="size-4"/> : <Eye className="size-4" />}
+                </button>
+              </div>
               </Field>
               <Field>
                 <Button type="submit" disabled={isPending}>
                   {isPending ? "Logging in..." : "Login"}
                 </Button>
-                <FieldDescription className="text-center">
-                  Don&apos;t have an account? <a href="#">Sign up</a>
-                </FieldDescription>
               </Field>
             </FieldGroup>
           </form>

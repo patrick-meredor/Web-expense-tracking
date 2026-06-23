@@ -9,7 +9,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "border border-emerald-500 rounded-md px-4 py-1 bg-emerald-400/50",
+        default: "border border-emerald-500 rounded-md px-4 py-1 bg-emerald-400/50 hover:bg-emerald-400/60 cursor-pointer",
         outline:
           "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         secondary:
