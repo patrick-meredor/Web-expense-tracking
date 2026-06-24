@@ -56,7 +56,7 @@ export function LoginForm({
           <form action={formAction}>
             <FieldGroup>
               {state.error && (
-                <div className="text-sm text-red-500 bg-red-500/10 p-3 rounded-md border border-red-500/20">
+                <div className="text-sm text-red-500 bg-red-500/10 p-3 rounded-md border border-red-500/20 text-center">
                   {state.error}
                 </div>
               )}
