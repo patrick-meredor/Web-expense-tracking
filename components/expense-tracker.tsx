@@ -52,8 +52,7 @@ export function ExpenseTracker() {
       setLoading(false);
       return;
     }
-
-    const loadedWallets = walletResult.data.map((w: any) => ({
+    const loadedWallets = walletResult.data.map((w: Wallet) => ({
       ...w,
       balance: Number(w.balance),
     }));
