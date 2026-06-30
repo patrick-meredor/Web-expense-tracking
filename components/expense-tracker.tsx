@@ -43,12 +43,17 @@ export function ExpenseTracker() {
           prev !== null && data.wallets.some((w) => w.id === prev) ? prev : data.wallets[0].id
         );
       }
-    } catch (err: any) {
-      setError(err?.message || "An unexpected error occurred loading data.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An unexpected error occurred loading data.");
     } finally {
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadData();
+  }, [loadData]);
 
   async function handleSignOut() {
     setLoggingOut(true);
@@ -67,8 +72,8 @@ export function ExpenseTracker() {
     try {
       await adjustWalletBalance(activeWalletId, newBalance);
       await loadData();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to adjust balance.");
     }
   }
 
@@ -82,8 +87,8 @@ export function ExpenseTracker() {
     try {
       await addTransactionRecord(activeWalletId, activeWallet.balance, data);
       await loadData();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to add transaction.");
     }
   }
 
@@ -97,8 +102,8 @@ export function ExpenseTracker() {
     try {
       await deleteTransactionRecord(targetTx, walletBalance);
       await loadData();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete transaction.");
     }
   }
 
@@ -107,8 +112,8 @@ export function ExpenseTracker() {
       const newWallet = await createNewWallet(name, initialBalance);
       await loadData();
       if (newWallet) setActiveWalletId(newWallet.id);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create wallet.");
     }
   }
 

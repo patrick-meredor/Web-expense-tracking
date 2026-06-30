@@ -1,11 +1,13 @@
 'use server'
 
-import { createClient } from "@/lib/supabase/client";
+import { cookies } from "next/headers";
+import { createClient } from "@/lib/supabase/server";
 import type { Category, Transaction, Wallet } from "@/lib/types";
 
 
 export async function getTrackerData() {
-  const supabase = await createClient()
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
 
   const [walletResult, txResult, userResult] = await Promise.all([
     supabase.from("wallet").select("*").order("name"),
@@ -16,6 +18,10 @@ export async function getTrackerData() {
       .order("created_at", { ascending: false }),
     supabase.auth.getUser(),
   ])
+
+  if(walletResult) {
+    console.log(walletResult);
+  }
 
   if (walletResult.error) {
     const isMissingTable = walletResult.error.message.includes("does not exist")
@@ -44,7 +50,8 @@ export async function getTrackerData() {
  * Adjusts an existing wallet's manual balance statement.
  */
 export async function adjustWalletBalance(walletId: number, newBalance: number) {
-  const supabase = await createClient()
+  const cookieStore = await cookies()
+  const supabase = createClient(cookieStore)
   const { error } = await supabase
     .from("wallet")
     .update({ balance: newBalance, updated_at: new Date().toISOString() })
@@ -57,7 +64,8 @@ export async function adjustWalletBalance(walletId: number, newBalance: number) 
  * Creates a brand new wallet profile.
  */
 export async function createNewWallet(name: string, initialBalance: number) {
-  const supabase = await createClient()
+  const cookieStore = await cookies()
+  const supabase = createClient(cookieStore)
   const { data, error } = await supabase
     .from("wallet")
     .insert({ name, balance: initialBalance })
@@ -75,7 +83,8 @@ export async function addTransactionRecord(
   currentBalance: number,
   data: { amount: number; description: string; category: Category; date: string }
 ) {
-  const supabase = await createClient()
+  const cookieStore = await cookies()
+  const supabase = createClient(cookieStore)
 
   // 1. Insert transaction
   const { error: txError } = await supabase.from("transactions").insert({
@@ -103,7 +112,8 @@ export async function addTransactionRecord(
  * Deletes a ledger record and restores balance state properties.
  */
 export async function deleteTransactionRecord(transaction: Transaction, currentWalletBalance: number) {
-  const supabase = await createClient()
+  const cookieStore = await cookies()
+  const supabase = createClient(cookieStore)
 
   // 1. Delete record
   const { error: deleteError } = await supabase
