@@ -22,7 +22,10 @@ export default function Header({ userEmail, handleSignOut, loggingOut }: HeaderP
             <button
               onClick={handleSignOut}
               disabled={loggingOut}
-              className="rounded-lg border border-red-800 bg-red-800/40 px-3.5 py-1.5 text-xs font-semibold text-zinc-300 transition duration-200 hover:bg-red-850 hover:text-white disabled:opacity-50 hover:cursor-pointer"
+              className="rounded-lg border border-red-800
+               bg-red-800/40 px-3.5 py-1.5 text-xs font-semibold
+                text-zinc-300 transition duration-200 hover:bg-red-850
+                 hover:text-white disabled:opacity-50 hover:cursor-pointer"
             >
               {loggingOut ? "Logging out..." : "Log out"}
             </button>

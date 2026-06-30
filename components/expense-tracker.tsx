@@ -9,6 +9,14 @@ import { createClient } from "@/lib/supabase/client";
 import Header from "@/components/header";
 import type { Category, Transaction, Wallet } from "@/lib/types";
 
+import {
+  getTrackerData,
+  adjustWalletBalance,
+  createNewWallet,
+  addTransactionRecord,
+  deleteTransactionRecord
+} from "@/app/expense-tracker/actions";
+
 export function ExpenseTracker() {
   const router = useRouter();
   const supabase = createClient();
@@ -21,65 +29,26 @@ export function ExpenseTracker() {
   const [loggingOut, setLoggingOut] = useState(false);
 
   const loadData = useCallback(async () => {
-    const [walletResult, txResult, userResult] = await Promise.all([
-      supabase.from("wallet").select("*").order("name"),
-      supabase
-        .from("transactions")
-        .select("*")
-        .order("date", { ascending: false })
-        .order("created_at", { ascending: false }),
-      supabase.auth.getUser(),
-    ]);
+    try {
+      setError(null);
+      const data = await getTrackerData();
 
-    setError(null);
+      setUserEmail(data.userEmail);
+      setWallets(data.wallets);
+      setTransactions(data.transactions);
 
-    if (userResult.data?.user) {
-      setUserEmail(userResult.data.user.email ?? null);
-    }
-
-    if (walletResult.error) {
-      setError(
-        walletResult.error.message.includes("does not exist")
-          ? "Database tables not found. Run supabase/schema.sql in your Supabase SQL Editor."
-          : walletResult.error.message
-      );
+      // Set active default wallet fallback safely
+      if (data.wallets.length > 0) {
+        setActiveWalletId((prev) => 
+          prev !== null && data.wallets.some((w) => w.id === prev) ? prev : data.wallets[0].id
+        );
+      }
+    } catch (err: any) {
+      setError(err?.message || "An unexpected error occurred loading data.");
+    } finally {
       setLoading(false);
-      return;
     }
-
-    if (txResult.error) {
-      setError(txResult.error.message);
-      setLoading(false);
-      return;
-    }
-    const loadedWallets = walletResult.data.map((w: Wallet) => ({
-      ...w,
-      balance: Number(w.balance),
-    }));
-
-    setWallets(loadedWallets);
-    if (loadedWallets.length > 0) {
-      setActiveWalletId((prev) => {
-        if (prev !== null && loadedWallets.some((w) => w.id === prev)) {
-          return prev;
-        }
-        return loadedWallets[0].id;
-      });
-    }
-
-    setTransactions(
-      txResult.data.map((tx) => ({
-        ...tx,
-        amount: Number(tx.amount),
-      }))
-    );
-    setLoading(false);
-  }, [supabase]);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadData();
-  }, [loadData]);
+  }, []);
 
   async function handleSignOut() {
     setLoggingOut(true);
@@ -95,13 +64,12 @@ export function ExpenseTracker() {
 
   async function handleAdjustBalance(newBalance: number) {
     if (activeWalletId === null) return;
-    const { error: updateError } = await supabase
-      .from("wallet")
-      .update({ balance: newBalance, updated_at: new Date().toISOString() })
-      .eq("id", activeWalletId);
-
-    if (updateError) throw new Error(updateError.message);
-    await loadData();
+    try {
+      await adjustWalletBalance(activeWalletId, newBalance);
+      await loadData();
+    } catch (err: any) {
+      setError(err.message);
+    }
   }
 
   async function handleAddTransaction(data: {
@@ -110,68 +78,37 @@ export function ExpenseTracker() {
     category: Category;
     date: string;
   }) {
-    if (activeWalletId === null) return;
-    const { error: insertError } = await supabase.from("transactions").insert({
-      amount: data.amount,
-      description: data.description,
-      category: data.category,
-      date: data.date,
-      wallet_id: activeWalletId,
-    });
-
-    if (insertError) throw new Error(insertError.message);
-
-    const activeWallet = wallets.find((w) => w.id === activeWalletId);
-    const currentBalance = activeWallet?.balance ?? 0;
-
-    const { error: updateError } = await supabase
-      .from("wallet")
-      .update({
-        balance: currentBalance + data.amount,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", activeWalletId);
-
-    if (updateError) throw new Error(updateError.message);
-    await loadData();
+    if (activeWalletId === null || !activeWallet) return;
+    try {
+      await addTransactionRecord(activeWalletId, activeWallet.balance, data);
+      await loadData();
+    } catch (err: any) {
+      setError(err.message);
+    }
   }
 
   async function handleDeleteTransaction(id: string) {
-    const tx = transactions.find((t) => t.id === id);
-    if (!tx) return;
+    const targetTx = transactions.find((t) => t.id === id);
+    if (!targetTx) return;
 
-    const { error: deleteError } = await supabase
-      .from("transactions")
-      .delete()
-      .eq("id", id);
+    const linkedWallet = wallets.find((w) => w.id === targetTx.wallet_id);
+    const walletBalance = linkedWallet?.balance ?? 0;
 
-    if (deleteError) throw new Error(deleteError.message);
-
-    const targetWallet = wallets.find((w) => w.id === tx.wallet_id);
-    const currentBalance = targetWallet?.balance ?? 0;
-
-    const { error: updateError } = await supabase
-      .from("wallet")
-      .update({
-        balance: currentBalance - tx.amount,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", tx.wallet_id);
-
-    if (updateError) throw new Error(updateError.message);
-    await loadData();
+    try {
+      await deleteTransactionRecord(targetTx, walletBalance);
+      await loadData();
+    } catch (err: any) {
+      setError(err.message);
+    }
   }
 
   async function handleCreateWallet(name: string, initialBalance: number) {
-    const { data, error: insertError } = await supabase
-      .from("wallet")
-      .insert({ name, balance: initialBalance })
-      .select();
-
-    if (insertError) throw new Error(insertError.message);
-    await loadData();
-    if (data && data[0]) {
-      setActiveWalletId(data[0].id);
+    try {
+      const newWallet = await createNewWallet(name, initialBalance);
+      await loadData();
+      if (newWallet) setActiveWalletId(newWallet.id);
+    } catch (err: any) {
+      setError(err.message);
     }
   }
 
