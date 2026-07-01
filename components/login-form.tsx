@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/card"
 import {
   Field,
+  FieldDescription,
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field"
@@ -70,7 +71,15 @@ export function LoginForm({
                 />
               </Field>
               <Field>
-              <FieldLabel htmlFor="password">Password</FieldLabel>
+              <div className="flex items-center">
+                  <FieldLabel htmlFor="password">Password</FieldLabel>
+                  <a
+                    href="#"
+                    className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
+                  >
+                    Forgot your password?
+                  </a>
+                </div>
               <div className="relative">
                 <Input 
                   id="password" 
@@ -92,6 +101,9 @@ export function LoginForm({
                 <Button type="submit" disabled={isPending}>
                   {isPending ? "Logging in..." : "Login"}
                 </Button>
+                <FieldDescription className="text-center">
+                  Don&apos;t have an account? <a href="#">Sign up</a>
+                </FieldDescription>
               </Field>
             </FieldGroup>
           </form>
