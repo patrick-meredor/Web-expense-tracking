@@ -16,3 +16,13 @@ export type Transaction = {
   date: string;
   created_at: string;
 };
+
+export type UpcomingExpense = {
+  id: string;
+  wallet_id: number;
+  name: string;
+  details: string;
+  amount: number;
+  date: string;
+  created_at: string;
+};

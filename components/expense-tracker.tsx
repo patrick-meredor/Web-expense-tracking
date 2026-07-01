@@ -5,16 +5,20 @@ import { useRouter } from "next/navigation";
 import { BalanceCard } from "@/components/balance-card";
 import { TransactionForm } from "@/components/transaction-form";
 import { TransactionList } from "@/components/transaction-list";
+import { UpcomingExpenses } from "@/components/upcoming-expenses";
 import { createClient } from "@/lib/supabase/client";
 import Header from "@/components/header";
-import type { Category, Transaction, Wallet } from "@/lib/types";
+import type { Category, Transaction, Wallet, UpcomingExpense } from "@/lib/types";
 
 import {
   getTrackerData,
   adjustWalletBalance,
   createNewWallet,
   addTransactionRecord,
-  deleteTransactionRecord
+  deleteTransactionRecord,
+  addUpcomingExpenseRecord,
+  deleteUpcomingExpenseRecord,
+  payUpcomingExpenseRecord
 } from "@/app/expense-tracker/actions";
 
 export function ExpenseTracker() {
@@ -23,6 +27,7 @@ export function ExpenseTracker() {
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [activeWalletId, setActiveWalletId] = useState<number | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [upcomingExpenses, setUpcomingExpenses] = useState<UpcomingExpense[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -36,6 +41,7 @@ export function ExpenseTracker() {
       setUserEmail(data.userEmail);
       setWallets(data.wallets);
       setTransactions(data.transactions);
+      setUpcomingExpenses(data.upcomingExpenses);
 
       // Set active default wallet fallback safely
       if (data.wallets.length > 0) {
@@ -117,9 +123,42 @@ export function ExpenseTracker() {
     }
   }
 
+  async function handleAddUpcomingExpense(data: { name: string; details: string; amount: number; date: string }) {
+    if (activeWalletId === null) return;
+    try {
+      await addUpcomingExpenseRecord(activeWalletId, data);
+      await loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to add upcoming expense.");
+    }
+  }
+
+  async function handleDeleteUpcomingExpense(id: string) {
+    try {
+      await deleteUpcomingExpenseRecord(id);
+      await loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete upcoming expense.");
+    }
+  }
+
+  async function handlePayUpcomingExpense(id: string) {
+    if (activeWalletId === null || !activeWallet) return;
+    try {
+      await payUpcomingExpenseRecord(id, activeWalletId, activeWallet.balance);
+      await loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to pay upcoming expense.");
+    }
+  }
+
   const activeWallet = wallets.find((w) => w.id === activeWalletId) || null;
   const activeWalletTransactions = activeWalletId !== null
     ? transactions.filter((t) => t.wallet_id === activeWalletId)
+    : [];
+
+  const activeUpcomingExpenses = activeWalletId !== null
+    ? upcomingExpenses.filter((ue) => ue.wallet_id === activeWalletId)
     : [];
 
   return (
@@ -150,11 +189,18 @@ export function ExpenseTracker() {
           </div>
 
           {/* Right Column: Ledger (Transaction List) */}
-          <div className="lg:col-span-7">
+          <div className="lg:col-span-7 space-y-6">
             <TransactionList
               transactions={activeWalletTransactions}
               loading={loading}
               onDelete={handleDeleteTransaction}
+            />
+            <UpcomingExpenses
+              upcomingExpenses={activeUpcomingExpenses}
+              onAdd={handleAddUpcomingExpense}
+              onDelete={handleDeleteUpcomingExpense}
+              onPay={handlePayUpcomingExpense}
+              loading={loading}
             />
           </div>
         </div>

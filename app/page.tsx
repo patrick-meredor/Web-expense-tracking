@@ -35,7 +35,7 @@ export default async function Home() {
             href="/login"
             className="inline-flex items-center justify-center border border-emerald-500/30 rounded-lg px-6 py-2 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-sm font-medium transition-all duration-200 active:scale-95 shadow-[0_4px_12px_rgba(16,185,129,0.1)]"
           >
-            Login Now!
+            Login Now
           </Link>
         </div>
       </div>
