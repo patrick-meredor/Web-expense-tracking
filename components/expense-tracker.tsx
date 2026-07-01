@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BalanceCard } from "@/components/balance-card";
+import { Button } from "@/components/ui/button";
 import { TransactionForm } from "@/components/transaction-form";
 import { TransactionList } from "@/components/transaction-list";
 import { UpcomingExpenses } from "@/components/upcoming-expenses";
 import { createClient } from "@/lib/supabase/client";
 import Header from "@/components/header";
 import type { Category, Transaction, Wallet, UpcomingExpense } from "@/lib/types";
+import { formatCurrency } from "@/lib/format";
 
 import {
   getTrackerData,
@@ -32,6 +33,13 @@ export function ExpenseTracker() {
   const [error, setError] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
+
+  const [activeTab, setActiveTab] = useState<"ledger" | "quick-add" | "upcoming">("ledger");
+  const [isAdjustBalanceOpen, setIsAdjustBalanceOpen] = useState(false);
+  const [isCreateWalletOpen, setIsCreateWalletOpen] = useState(false);
+  const [adjustBalanceValue, setAdjustBalanceValue] = useState("");
+  const [newWalletName, setNewWalletName] = useState("");
+  const [newWalletBalance, setNewWalletBalance] = useState("");
 
   const loadData = useCallback(async () => {
     try {
@@ -161,6 +169,13 @@ export function ExpenseTracker() {
     ? upcomingExpenses.filter((ue) => ue.wallet_id === activeWalletId)
     : [];
 
+  const totalExpenses = activeWalletTransactions
+    .filter((t) => t.amount < 0)
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const totalUpcomingExpenses = activeUpcomingExpenses
+    .reduce((sum, ue) => sum + ue.amount, 0);
+
   return (
     <div className="min-h-screen bg-zinc-950 flex flex-col text-zinc-100">
       {/* Premium Header/Navbar */}
@@ -169,42 +184,315 @@ export function ExpenseTracker() {
       {/* Main Content Area */}
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
         {error && (
-          <div className="mb-6 rounded-xl border border-red-950 bg-red-950/30 px-4 py-3.5 text-sm text-red-400 shadow-sm">
+          <div className="mb-6 rounded-xl border border-red-955 bg-red-955/20 px-4 py-3.5 text-sm text-red-400 shadow-sm">
             {error}
           </div>
         )}
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 items-start">
-          {/* Left Column: Balance & Quick Add */}
-          <div className="space-y-6 lg:col-span-5">
-            <BalanceCard
-              activeWallet={activeWallet}
-              wallets={wallets}
-              onSelectWallet={setActiveWalletId}
-              onAdjust={handleAdjustBalance}
-              onCreateWallet={handleCreateWallet}
-              loading={loading}
-            />
-            <TransactionForm onSubmit={handleAddTransaction} />
+          {/* Left Column: Sidebar (3 cols) */}
+          <div className="space-y-6 lg:col-span-3">
+            {/* Balance Selector Header */}
+            <div className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 flex items-center justify-between text-xs font-semibold text-zinc-300">
+              <span>Balance</span>
+              <span className="text-[10px]">▼</span>
+            </div>
+
+            {/* Wallets list */}
+            <div className="flex flex-col">
+              {wallets.map((wallet) => (
+                <div key={wallet.id} className="w-full flex flex-col items-center">
+                  <button
+                    onClick={() => setActiveWalletId(wallet.id)}
+                    className={`py-2 text-center text-sm font-bold tracking-widest cursor-pointer transition duration-150 uppercase ${
+                      wallet.id === activeWalletId
+                        ? "text-emerald-450 font-extrabold"
+                        : "text-zinc-400 hover:text-zinc-200"
+                    }`}
+                  >
+                    {wallet.name}
+                  </button>
+                  <div className="w-full border-b border-zinc-900 my-1" />
+                </div>
+              ))}
+            </div>
+
+            {/* Action placeholders */}
+            <div className="space-y-3">
+              <button
+                onClick={() => setIsCreateWalletOpen(true)}
+                className="w-full h-12 rounded-xl border border-zinc-900 bg-zinc-900/40 flex items-center justify-center text-xs font-semibold text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 transition cursor-pointer"
+              >
+                + Add Account
+              </button>
+              <button
+                onClick={() => setIsAdjustBalanceOpen(true)}
+                className="w-full h-12 rounded-xl border border-zinc-900 bg-zinc-900/40 flex items-center justify-center text-xs font-semibold text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 transition cursor-pointer"
+              >
+                + Adjust Balance
+              </button>
+            </div>
           </div>
 
-          {/* Right Column: Ledger (Transaction List) */}
-          <div className="lg:col-span-7 space-y-6">
-            <TransactionList
-              transactions={activeWalletTransactions}
-              loading={loading}
-              onDelete={handleDeleteTransaction}
-            />
-            <UpcomingExpenses
-              upcomingExpenses={activeUpcomingExpenses}
-              onAdd={handleAddUpcomingExpense}
-              onDelete={handleDeleteUpcomingExpense}
-              onPay={handlePayUpcomingExpense}
-              loading={loading}
-            />
+          {/* Right Column: Cards (Top) & Tabs (Bottom) (9 cols) */}
+          <div className="lg:col-span-9 space-y-6">
+            {/* Top row cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Card 1: Balance */}
+              <div className="rounded-2xl border border-zinc-900 bg-zinc-900/40 p-6 flex flex-col justify-between min-h-[160px]">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-455">
+                  Balance
+                </div>
+                <div className="text-3xl font-bold text-zinc-100 tracking-tight my-2">
+                  {loading ? (
+                    <span className="inline-block h-8 w-32 animate-pulse rounded bg-zinc-850" />
+                  ) : (
+                    formatCurrency(activeWallet?.balance ?? 0)
+                  )}
+                </div>
+                <Button
+                  onClick={() => setIsAdjustBalanceOpen(true)}
+                  className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 hover:text-zinc-200 cursor-pointer self-start"
+                >
+                  Adjust Balance
+                </Button>
+              </div>
+
+              {/* Card 2: Total Expenses */}
+              <div className="rounded-2xl border border-zinc-900 bg-zinc-900/40 p-6 flex flex-col justify-between min-h-[160px]">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-455">
+                  Total Expenses
+                </div>
+                <div className="text-3xl font-bold text-zinc-100 tracking-tight my-2">
+                  {loading ? (
+                    <span className="inline-block h-8 w-32 animate-pulse rounded bg-zinc-850" />
+                  ) : (
+                    formatCurrency(totalExpenses)
+                  )}
+                </div>
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-550">
+                  &nbsp;
+                </div>
+              </div>
+
+              {/* Card 3: Total Upcoming Expenses */}
+              <div className="rounded-2xl border border-zinc-900 bg-zinc-900/40 p-6 flex flex-col justify-between min-h-[160px]">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-455">
+                  Total Upcoming Expenses
+                </div>
+                <div className="text-3xl font-bold text-zinc-100 tracking-tight my-2">
+                  {loading ? (
+                    <span className="inline-block h-8 w-32 animate-pulse rounded bg-zinc-850" />
+                  ) : (
+                    formatCurrency(totalUpcomingExpenses)
+                  )}
+                </div>
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-550">
+                  &nbsp;
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom tabbed container */}
+            <div className="rounded-2xl border border-zinc-900 bg-zinc-900/40 p-6 flex flex-col gap-6">
+              {/* Tabs Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-900 pb-4">
+                <div className="flex flex-wrap items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-zinc-450 select-none">
+                  <button
+                    onClick={() => setActiveTab("ledger")}
+                    className={`hover:text-zinc-200 transition cursor-pointer ${
+                      activeTab === "ledger" ? "text-emerald-455 animate-fade-in" : ""
+                    }`}
+                  >
+                    Ledger
+                  </button>
+                  <span className="text-zinc-800">|</span>
+                  <button
+                    onClick={() => setActiveTab("quick-add")}
+                    className={`hover:text-zinc-200 transition cursor-pointer ${
+                      activeTab === "quick-add" ? "text-emerald-455 animate-fade-in" : ""
+                    }`}
+                  >
+                    Quick Add
+                  </button>
+                  <span className="text-zinc-800">|</span>
+                  <button
+                    onClick={() => setActiveTab("upcoming")}
+                    className={`hover:text-zinc-200 transition cursor-pointer ${
+                      activeTab === "upcoming" ? "text-emerald-455 animate-fade-in" : ""
+                    }`}
+                  >
+                    Upcoming Expenses
+                  </button>
+                </div>
+
+                <div className="text-xs text-zinc-400 font-medium">
+                  {activeTab === "ledger" && (
+                    <>
+                      <span className="text-emerald-455 font-bold mr-1">
+                        {activeWalletTransactions.length}
+                      </span>
+                      Transaction{activeWalletTransactions.length === 1 ? "" : "s"} Recorded!
+                    </>
+                  )}
+                  {activeTab === "upcoming" && (
+                    <>
+                      <span className="text-emerald-455 font-bold mr-1">
+                        {activeUpcomingExpenses.length}
+                      </span>
+                      Expense Reminder{activeUpcomingExpenses.length === 1 ? "" : "s"} Pending!
+                    </>
+                  )}
+                  {activeTab === "quick-add" && (
+                    <span className="text-zinc-500 animate-fade-in">Quick Add Transaction</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Tab Content */}
+              <div className="flex-1">
+                {activeTab === "ledger" && (
+                  <TransactionList
+                    transactions={activeWalletTransactions}
+                    loading={loading}
+                    onDelete={handleDeleteTransaction}
+                    inline={true}
+                  />
+                )}
+                {activeTab === "quick-add" && (
+                  <TransactionForm onSubmit={handleAddTransaction} inline={true} />
+                )}
+                {activeTab === "upcoming" && (
+                  <UpcomingExpenses
+                    upcomingExpenses={activeUpcomingExpenses}
+                    onAdd={handleAddUpcomingExpense}
+                    onDelete={handleDeleteUpcomingExpense}
+                    onPay={handlePayUpcomingExpense}
+                    loading={loading}
+                    inline={true}
+                  />
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </main>
+
+      {/* Adjust Balance Modal */}
+      {isAdjustBalanceOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl border border-zinc-900 bg-zinc-950 p-6 shadow-2xl">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-emerald-455">Adjust Balance</h3>
+            <p className="mt-1 text-xs text-zinc-505">Set a new balance for {activeWallet?.name || "wallet"}.</p>
+            
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const parsed = parseFloat(adjustBalanceValue);
+              if (Number.isNaN(parsed)) return;
+              try {
+                await handleAdjustBalance(parsed);
+                setAdjustBalanceValue("");
+                setIsAdjustBalanceOpen(false);
+              } catch (err) {
+                // handled
+              }
+            }} className="mt-4 space-y-4">
+              <input
+                type="number"
+                step="0.01"
+                inputMode="decimal"
+                placeholder="New balance (e.g. 5000)"
+                value={adjustBalanceValue}
+                onChange={(e) => setAdjustBalanceValue(e.target.value)}
+                className="w-full rounded-lg border border-zinc-800 bg-zinc-900/40 px-3.5 py-2 text-sm text-zinc-100 placeholder:text-zinc-650 focus:border-emerald-500/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+                autoFocus
+                required
+              />
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAdjustBalanceOpen(false);
+                    setAdjustBalanceValue("");
+                  }}
+                  className="rounded-lg border border-zinc-800 bg-zinc-900/30 px-4 py-2 text-xs font-medium text-zinc-400 hover:text-zinc-200 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-lg bg-emerald-450 hover:bg-emerald-555 px-4 py-2 text-xs font-bold text-zinc-950 transition cursor-pointer"
+                >
+                  Save
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Account Modal */}
+      {isCreateWalletOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl border border-zinc-900 bg-zinc-955/80 p-6 shadow-2xl">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-emerald-455">Add Account</h3>
+            <p className="mt-1 text-xs text-zinc-505">Create a new wallet account.</p>
+            
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!newWalletName.trim()) return;
+              const parsedBalance = parseFloat(newWalletBalance) || 0;
+              try {
+                await handleCreateWallet(newWalletName.trim(), parsedBalance);
+                setNewWalletName("");
+                setNewWalletBalance("");
+                setIsCreateWalletOpen(false);
+              } catch (err) {
+                // handled
+              }
+            }} className="mt-4 space-y-4">
+              <div className="space-y-3">
+                <input
+                  type="text"
+                  placeholder="Account Name (e.g. Maya)"
+                  required
+                  value={newWalletName}
+                  onChange={(e) => setNewWalletName(e.target.value)}
+                  className="w-full rounded-lg border border-zinc-800 bg-zinc-900/40 px-3.5 py-2 text-sm text-zinc-100 placeholder:text-zinc-650 focus:border-emerald-500/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+                  autoFocus
+                />
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="Initial Balance"
+                  value={newWalletBalance}
+                  onChange={(e) => setNewWalletBalance(e.target.value)}
+                  className="w-full rounded-lg border border-zinc-800 bg-zinc-900/40 px-3.5 py-2 text-sm text-zinc-100 placeholder:text-zinc-650 focus:border-emerald-500/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCreateWalletOpen(false);
+                    setNewWalletName("");
+                    setNewWalletBalance("");
+                  }}
+                  className="rounded-lg border border-zinc-800 bg-zinc-900/30 px-4 py-2 text-xs font-medium text-zinc-400 hover:text-zinc-200 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-lg bg-emerald-450 hover:bg-emerald-555 px-4 py-2 text-xs font-bold text-zinc-955 transition cursor-pointer"
+                >
+                  Create
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -10,6 +10,7 @@ type UpcomingExpensesProps = {
   onDelete: (id: string) => Promise<void>;
   onPay: (id: string) => Promise<void>;
   loading?: boolean;
+  inline?: boolean;
 };
 
 export function UpcomingExpenses({
@@ -18,6 +19,7 @@ export function UpcomingExpenses({
   onDelete,
   onPay,
   loading,
+  inline = false,
 }: UpcomingExpensesProps) {
   const [name, setName] = useState("");
   const [details, setDetails] = useState("");
@@ -72,20 +74,24 @@ export function UpcomingExpenses({
     }
   }
 
-  return (
-    <section className="rounded-2xl border border-zinc-900 bg-zinc-900/40 p-6 shadow-xl backdrop-blur-md">
-      <div className="flex items-center justify-between">
-        <h2 className="text-base font-bold text-zinc-100 tracking-tight">Upcoming Expenses</h2>
-        <span className="rounded-full bg-zinc-900 border border-zinc-800 px-2.5 py-0.5 text-xs font-medium text-zinc-400">
-          {upcomingExpenses.length} note{upcomingExpenses.length === 1 ? "" : "s"}
-        </span>
-      </div>
-      <p className="mt-1 text-xs text-zinc-500">
-        Track expenses you need to pay soon. Mark them as paid to move to the ledger.
-      </p>
+  const content = (
+    <div className={inline ? "w-full flex flex-col gap-4" : ""}>
+      {!inline && (
+        <>
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-bold text-zinc-100 tracking-tight">Upcoming Expenses</h2>
+            <span className="rounded-full bg-zinc-900 border border-zinc-800 px-2.5 py-0.5 text-xs font-medium text-zinc-400">
+              {upcomingExpenses.length} note{upcomingExpenses.length === 1 ? "" : "s"}
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-zinc-500">
+            Track expenses you need to pay soon. Mark them as paid to move to the ledger.
+          </p>
+        </>
+      )}
 
       {/* List Section */}
-      <div className="mt-5 space-y-3">
+      <div className={inline ? "space-y-3" : "mt-5 space-y-3"}>
         {loading ? (
           <p className="text-xs text-zinc-550 animate-pulse">Loading upcoming expenses…</p>
         ) : upcomingExpenses.length > 0 ? (
@@ -126,7 +132,7 @@ export function UpcomingExpenses({
                         type="button"
                         onClick={() => onPay(ue.id)}
                         title="Mark as paid (records transaction and deducts from wallet)"
-                        className="rounded-lg p-1.5 text-zinc-450 transition duration-150 hover:bg-emerald-950/40 hover:text-emerald-400 hover:cursor-pointer"
+                        className="rounded-lg p-1.5 text-zinc-450 transition duration-150 hover:bg-emerald-950/40 hover:text-emerald-400 hover:cursor-pointer flex items-center justify-center"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -146,7 +152,7 @@ export function UpcomingExpenses({
                         type="button"
                         onClick={() => onDelete(ue.id)}
                         title="Delete note"
-                        className="rounded-lg p-1.5 text-zinc-450 transition duration-150 hover:bg-zinc-900 hover:text-red-400 hover:cursor-pointer"
+                        className="rounded-lg p-1.5 text-zinc-455 transition duration-150 hover:bg-zinc-900 hover:text-red-400 hover:cursor-pointer flex items-center justify-center"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -234,7 +240,7 @@ export function UpcomingExpenses({
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-zinc-450">Due Date</span>
+            <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-zinc-455">Due Date</span>
             <input
               type="date"
               value={date}
@@ -246,7 +252,7 @@ export function UpcomingExpenses({
         </div>
 
         {error && (
-          <div className="rounded-lg border border-red-950 bg-red-955/20 px-3 py-2 text-[11px] text-red-400">
+          <div className="rounded-lg border border-red-955 bg-red-955/20 px-3 py-2 text-[11px] text-red-400">
             {error}
           </div>
         )}
@@ -259,6 +265,16 @@ export function UpcomingExpenses({
           {submitting ? "Adding Note…" : "Add Upcoming Expense"}
         </button>
       </form>
+    </div>
+  );
+
+  if (inline) {
+    return content;
+  }
+
+  return (
+    <section className="rounded-2xl border border-zinc-900 bg-zinc-900/40 p-6 shadow-xl backdrop-blur-md">
+      {content}
     </section>
   );
 }

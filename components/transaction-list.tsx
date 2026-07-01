@@ -9,6 +9,7 @@ type TransactionListProps = {
   transactions: Transaction[];
   loading?: boolean;
   onDelete?: (id: string) => Promise<void>;
+  inline?: boolean;
 };
 
 // Define how many transactions to show per page
@@ -18,12 +19,20 @@ export function TransactionList({
   transactions,
   loading,
   onDelete,
+  inline = false,
 }: TransactionListProps) {
   // 1. Setup active page and filter states
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState<Category | "All">("All");
 
   if (loading) {
+    if (inline) {
+      return (
+        <div className="flex flex-col py-6">
+          <p className="text-xs text-zinc-500 animate-pulse">Loading transactions…</p>
+        </div>
+      );
+    }
     return (
       <section className="rounded-2xl border border-zinc-900 bg-zinc-900/40 p-6 shadow-xl backdrop-blur-md lg:flex lg:max-h-[calc(100vh-12rem)] lg:flex-col">
         <h2 className="text-base font-bold text-zinc-100 tracking-tight">Ledger</h2>
@@ -52,45 +61,49 @@ export function TransactionList({
     setCurrentPage(totalPages);
   }
 
-  return (
-    <section className="rounded-2xl border border-zinc-900 bg-zinc-900/40 p-6 shadow-xl backdrop-blur-md lg:flex lg:max-h-[calc(100vh-1rem)] lg:flex-col justify-between">
+  const content = (
+    <div className={`flex flex-col justify-between ${inline ? "h-full w-full" : ""}`}>
       <div className="shrink-0 pb-1">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-zinc-100 tracking-tight">Ledger</h2>
-          {/* Mobile category filter dropdown */}
-          <div className="sm:hidden">
-            <select
-              value={selectedCategory}
-              onChange={(e) => {
-                setSelectedCategory(e.target.value as Category | "All");
-                setCurrentPage(1);
-              }}
-              className="rounded-lg border border-zinc-800 bg-zinc-950 px-2.5 py-1 text-xs font-semibold text-zinc-350 focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
-            >
-              <option value="All">All Categories</option>
-              {CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
+        {!inline && (
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-bold text-zinc-100 tracking-tight">Ledger</h2>
+            {/* Mobile category filter dropdown */}
+            <div className="sm:hidden">
+              <select
+                value={selectedCategory}
+                onChange={(e) => {
+                  setSelectedCategory(e.target.value as Category | "All");
+                  setCurrentPage(1);
+                }}
+                className="rounded-lg border border-zinc-800 bg-zinc-950 px-2.5 py-1 text-xs font-semibold text-zinc-350 focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
+              >
+                <option value="All">All Categories</option>
+                {CATEGORIES.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-        </div>
+        )}
         
-        <p className="mt-1 text-xs text-zinc-500">
-          {selectedCategory === "All" ? (
-            totalItems === 0
-              ? "No transactions yet."
-              : `${totalItems} transaction${totalItems === 1 ? "" : "s"} recorded`
-          ) : (
-            filteredCount === 0
-              ? `No transactions in "${selectedCategory}".`
-              : `${filteredCount} of ${totalItems} transaction${filteredCount === 1 ? "" : "s"} ("${selectedCategory}")`
-          )}
-        </p>
+        {!inline && (
+          <p className="mt-1 text-xs text-zinc-500">
+            {selectedCategory === "All" ? (
+              totalItems === 0
+                ? "No transactions yet."
+                : `${totalItems} transaction${totalItems === 1 ? "" : "s"} recorded`
+            ) : (
+              filteredCount === 0
+                ? `No transactions in "${selectedCategory}".`
+                : `${filteredCount} of ${totalItems} transaction${filteredCount === 1 ? "" : "s"} ("${selectedCategory}")`
+            )}
+          </p>
+        )}
 
-        {/* Desktop category filter pills */}
-        <div className="hidden sm:flex flex-wrap gap-1.5 mt-4">
+        {/* Desktop category filter pills - always visible in inline mode for filtering */}
+        <div className={`flex flex-wrap gap-1.5 ${inline ? "mt-0" : "mt-4"}`}>
           <button
             type="button"
             onClick={() => {
@@ -208,12 +221,11 @@ export function TransactionList({
             {totalItems === 0 ? "No transactions recorded yet" : `No transactions found in "${selectedCategory}"`}
           </p>
           <p className="mt-1 text-[10px] text-zinc-600">
-            {totalItems === 0 ? "Add your first transaction using the form on the left." : "Try selecting another category or add a new entry."}
+            {totalItems === 0 ? "Add your first transaction." : "Try selecting another category."}
           </p>
         </div>
       )}
 
-      {/* 3. Pagination Controls UI */}
       {totalPages > 1 && (
         <div className="mt-6 flex items-center justify-between border-t border-zinc-900 pt-4 shrink-0">
           <button
@@ -234,12 +246,22 @@ export function TransactionList({
             type="button"
             disabled={currentPage === totalPages}
             onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-            className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-3 py-1.5 text-xs font-semibold text-zinc-300 transition duration-150 hover:bg-zinc-800 hover:text-zinc-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-3 py-1.5 text-xs font-semibold text-zinc-350 transition duration-150 hover:bg-zinc-800 hover:text-zinc-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
             Next
           </button>
         </div>
       )}
+    </div>
+  );
+
+  if (inline) {
+    return content;
+  }
+
+  return (
+    <section className="rounded-2xl border border-zinc-900 bg-zinc-900/40 p-6 shadow-xl backdrop-blur-md lg:flex lg:max-h-[calc(100vh-1rem)] lg:flex-col justify-between">
+      {content}
     </section>
   );
 }
