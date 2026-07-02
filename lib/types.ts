@@ -23,6 +23,6 @@ export type UpcomingExpense = {
   name: string;
   details: string;
   amount: number;
-  date: string;
+  date: string | null;
   created_at: string;
 };

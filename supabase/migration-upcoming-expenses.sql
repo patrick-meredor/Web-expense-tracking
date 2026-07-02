@@ -4,7 +4,7 @@ create table if not exists upcoming_expenses (
   name text not null,
   details text not null default '',
   amount numeric(12, 2) not null,
-  date date not null,
+  date date,
   wallet_id int references wallet(id) on delete cascade,
   created_at timestamptz not null default now()
 );

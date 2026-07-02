@@ -159,7 +159,7 @@ export async function deleteTransactionRecord(transaction: Transaction, currentW
  */
 export async function addUpcomingExpenseRecord(
   walletId: number,
-  data: { name: string; details: string; amount: number; date: string }
+  data: { name: string; details: string; amount: number; date: string | null }
 ) {
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
@@ -168,7 +168,7 @@ export async function addUpcomingExpenseRecord(
     name: data.name,
     details: data.details,
     amount: data.amount,
-    date: data.date,
+    date: data.date || null,
     wallet_id: walletId,
   })
 

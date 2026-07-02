@@ -4,6 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { TransactionForm } from "@/components/transaction-form";
+import { ChevronDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import { TransactionList } from "@/components/transaction-list";
 import { UpcomingExpenses } from "@/components/upcoming-expenses";
 import { createClient } from "@/lib/supabase/client";
@@ -131,7 +138,7 @@ export function ExpenseTracker() {
     }
   }
 
-  async function handleAddUpcomingExpense(data: { name: string; details: string; amount: number; date: string }) {
+  async function handleAddUpcomingExpense(data: { name: string; details: string; amount: number; date: string | null }) {
     if (activeWalletId === null) return;
     try {
       await addUpcomingExpenseRecord(activeWalletId, data);
@@ -192,45 +199,58 @@ export function ExpenseTracker() {
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 items-start">
           {/* Left Column: Sidebar (3 cols) */}
           <div className="space-y-6 lg:col-span-3">
-            {/* Balance Selector Header */}
-            <div className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 flex items-center justify-between text-xs font-semibold text-zinc-300">
-              <span>Balance</span>
-              <span className="text-[10px]">▼</span>
-            </div>
-
-            {/* Wallets list */}
-            <div className="flex flex-col">
-              {wallets.map((wallet) => (
-                <div key={wallet.id} className="w-full flex flex-col items-center">
-                  <button
-                    onClick={() => setActiveWalletId(wallet.id)}
-                    className={`py-2 text-center text-sm font-bold tracking-widest cursor-pointer transition duration-150 uppercase ${
-                      wallet.id === activeWalletId
-                        ? "text-emerald-450 font-extrabold"
-                        : "text-zinc-400 hover:text-zinc-200"
-                    }`}
+            {/* Balance Selector Header & Dropdown */}
+            <div className="space-y-2">
+              <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wider px-1">
+                Account
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-between bg-zinc-950 border-zinc-800 text-zinc-100 hover:bg-zinc-900 hover:text-zinc-100 px-3 py-2 text-xs font-bold rounded-lg h-9 cursor-pointer uppercase tracking-widest"
                   >
-                    {wallet.name}
-                  </button>
-                  <div className="w-full border-b border-zinc-900 my-1" />
-                </div>
-              ))}
+                    <span className={activeWallet ? "text-emerald-400 font-extrabold" : "text-zinc-400"}>
+                      {activeWallet ? activeWallet.name : "Select Account"}
+                    </span>
+                    <ChevronDown className="h-4 w-4 text-zinc-500" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width] bg-zinc-950 border-zinc-800 text-zinc-100">
+                  {wallets.map((wallet) => (
+                    <DropdownMenuItem
+                      key={wallet.id}
+                      onClick={() => setActiveWalletId(wallet.id)}
+                      className={`cursor-pointer justify-between uppercase tracking-wider font-semibold focus:bg-zinc-900 focus:text-zinc-100 ${
+                        wallet.id === activeWalletId
+                          ? "text-emerald-400 font-extrabold"
+                          : "text-zinc-400 hover:text-zinc-200"
+                      }`}
+                    >
+                      {wallet.name}
+                      {wallet.id === activeWalletId && (
+                        <span className="text-emerald-400 text-xs">Active</span>
+                      )}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             {/* Action placeholders */}
             <div className="space-y-3">
-              <button
+              <Button
                 onClick={() => setIsCreateWalletOpen(true)}
-                className="w-full h-12 rounded-xl border border-zinc-900 bg-zinc-900/40 flex items-center justify-center text-xs font-semibold text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 transition cursor-pointer"
+                className="w-full flex items-center justify-center text-xs font-semibold transition cursor-pointer"
               >
                 + Add Account
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => setIsAdjustBalanceOpen(true)}
-                className="w-full h-12 rounded-xl border border-zinc-900 bg-zinc-900/40 flex items-center justify-center text-xs font-semibold text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 transition cursor-pointer"
+                className="w-full flex items-center justify-center text-xs font-semibold transition cursor-pointer"
               >
                 + Adjust Balance
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -239,31 +259,28 @@ export function ExpenseTracker() {
             {/* Top row cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Card 1: Balance */}
-              <div className="rounded-2xl border border-zinc-900 bg-zinc-900/40 p-6 flex flex-col justify-between min-h-[160px]">
+              <div className="rounded-2xl border border-zinc-900 bg-zinc-900/40 p-3 flex flex-col justify-between min-h-[160px]">
                 <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-455">
                   Balance
                 </div>
-                <div className="text-3xl font-bold text-zinc-100 tracking-tight my-2">
+                <div className="text-3xl font-bold text-emerald-400 tracking-tight my-2 text-center">
                   {loading ? (
                     <span className="inline-block h-8 w-32 animate-pulse rounded bg-zinc-850" />
                   ) : (
                     formatCurrency(activeWallet?.balance ?? 0)
                   )}
                 </div>
-                <Button
-                  onClick={() => setIsAdjustBalanceOpen(true)}
-                  className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 hover:text-zinc-200 cursor-pointer self-start"
-                >
-                  Adjust Balance
-                </Button>
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-550">
+                  &nbsp;
+                </div>
               </div>
 
               {/* Card 2: Total Expenses */}
-              <div className="rounded-2xl border border-zinc-900 bg-zinc-900/40 p-6 flex flex-col justify-between min-h-[160px]">
+              <div className="rounded-2xl border border-zinc-900 bg-zinc-900/40 p-3 flex flex-col justify-between min-h-[160px]">
                 <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-455">
                   Total Expenses
                 </div>
-                <div className="text-3xl font-bold text-zinc-100 tracking-tight my-2">
+                <div className="text-3xl font-bold text-red-400 tracking-tight my-2 text-center">
                   {loading ? (
                     <span className="inline-block h-8 w-32 animate-pulse rounded bg-zinc-850" />
                   ) : (
@@ -276,11 +293,11 @@ export function ExpenseTracker() {
               </div>
 
               {/* Card 3: Total Upcoming Expenses */}
-              <div className="rounded-2xl border border-zinc-900 bg-zinc-900/40 p-6 flex flex-col justify-between min-h-[160px]">
+              <div className="rounded-2xl border border-zinc-900 bg-zinc-900/40 p-3 flex flex-col justify-between min-h-[160px]">
                 <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-455">
                   Total Upcoming Expenses
                 </div>
-                <div className="text-3xl font-bold text-zinc-100 tracking-tight my-2">
+                <div className="text-3xl font-bold text-orange-400 tracking-tight my-2 text-center">
                   {loading ? (
                     <span className="inline-block h-8 w-32 animate-pulse rounded bg-zinc-850" />
                   ) : (
@@ -421,7 +438,7 @@ export function ExpenseTracker() {
                 </button>
                 <button
                   type="submit"
-                  className="rounded-lg bg-emerald-450 hover:bg-emerald-555 px-4 py-2 text-xs font-bold text-zinc-950 transition cursor-pointer"
+                  className="rounded-lg bg-emerald-700 hover:text-white px-4 py-2 text-xs font-bold text-zinc-300 transition cursor-pointer"
                 >
                   Save
                 </button>

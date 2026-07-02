@@ -3,10 +3,9 @@
 import { useActionState, useState } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import Link from "next/link"
-import { Home, Eye, EyeOff } from "lucide-react"
+import { Eye, EyeOff } from "lucide-react"
 import { handleLogin, FormState } from "@/app/login/actions"
-
+import { ReturnHome } from "./return-home"
 import {
   Card,
   CardContent,
@@ -21,6 +20,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+
 
 const initialState: FormState = {
   error: null,
@@ -39,12 +39,7 @@ export function LoginForm({
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader className="space-y-4 flex flex-col items-center">
-          <Link
-            href="/"
-            className="w-fit text-muted-foreground hover:text-foreground rounded-full border border-zinc-500 p-2"
-          >
-            <Home className="h-5 w-5 duration-300 ease-in-out" />
-          </Link>
+          <ReturnHome />
           <div>
             <CardTitle className="font-family-pixel text-center">Login to your account</CardTitle>
             <CardDescription className="text-center pt-2">
@@ -75,7 +70,7 @@ export function LoginForm({
                   <FieldLabel htmlFor="password">Password</FieldLabel>
                   <a
                     href="#"
-                    className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
+                    className="ml-auto inline-block text-xs text-muted-foreground underline-offset-4 hover:text-emerald-400"
                   >
                     Forgot your password?
                   </a>
@@ -102,7 +97,7 @@ export function LoginForm({
                   {isPending ? "Logging in..." : "Login"}
                 </Button>
                 <FieldDescription className="text-center">
-                  Don&apos;t have an account? <a href="#">Sign up</a>
+                  Don&apos;t have an account? <a href="/register">Register here</a>
                 </FieldDescription>
               </Field>
             </FieldGroup>

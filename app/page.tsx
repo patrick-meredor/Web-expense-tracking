@@ -43,7 +43,7 @@ export default async function Home() {
       {/* Footer Layout positioning */}
       <footer className="w-full text-center text-xs text-zinc-500 absolute bottom-6 left-0 z-10">
         Created by{" "}
-        <span className="text-emerald-500/90 font-medium hover:text-emerald-400 transition-colors cursor-pointer">
+        <span className="text-emerald-500/90 font-medium">
           Patrick Meredor
         </span>
       </footer>

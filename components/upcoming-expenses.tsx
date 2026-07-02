@@ -6,7 +6,7 @@ import type { UpcomingExpense } from "@/lib/types";
 
 type UpcomingExpensesProps = {
   upcomingExpenses: UpcomingExpense[];
-  onAdd: (data: { name: string; details: string; amount: number; date: string }) => Promise<void>;
+  onAdd: (data: { name: string; details: string; amount: number; date: string | null }) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onPay: (id: string) => Promise<void>;
   loading?: boolean;
@@ -24,7 +24,7 @@ export function UpcomingExpenses({
   const [name, setName] = useState("");
   const [details, setDetails] = useState("");
   const [amount, setAmount] = useState("");
-  const [date, setDate] = useState(todayISO());
+  const [date, setDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,11 +44,11 @@ export function UpcomingExpenses({
 
     setSubmitting(true);
     try {
-      await onAdd({ name, details, amount: parsed, date });
+      await onAdd({ name, details, amount: parsed, date: date || null });
       setName("");
       setDetails("");
       setAmount("");
-      setDate(todayISO());
+      setDate("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add upcoming expense.");
     } finally {
@@ -56,7 +56,10 @@ export function UpcomingExpenses({
     }
   }
 
-  function getDueStatus(dateStr: string) {
+  function getDueStatus(dateStr: string | null) {
+    if (!dateStr) {
+      return { label: "No due date", color: "text-zinc-500 bg-zinc-950/20 border-zinc-900/50" };
+    }
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const due = new Date(dateStr + "T00:00:00");
@@ -108,9 +111,11 @@ export function UpcomingExpenses({
                       <span className={`inline-block rounded-md px-2 py-0.5 text-[9px] font-semibold border ${status.color}`}>
                         {status.label}
                       </span>
-                      <span className="text-[10px] text-zinc-505 font-medium">
-                        {formatDate(ue.date)}
-                      </span>
+                      {ue.date && (
+                        <span className="text-[10px] text-zinc-505 font-medium">
+                          {formatDate(ue.date)}
+                        </span>
+                      )}
                     </div>
                     <p className="mt-1 truncate text-sm font-semibold text-zinc-200">
                       {ue.name}
@@ -240,12 +245,11 @@ export function UpcomingExpenses({
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-zinc-455">Due Date</span>
+            <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-zinc-455">Due Date (Optional)</span>
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              required
               className="w-full rounded-lg border border-zinc-800 bg-zinc-950/80 px-3 py-1.5 text-xs text-zinc-100 outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition duration-200"
             />
           </label>
