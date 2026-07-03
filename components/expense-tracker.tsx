@@ -318,7 +318,7 @@ export function ExpenseTracker() {
                   <button
                     onClick={() => setActiveTab("ledger")}
                     className={`hover:text-zinc-200 transition cursor-pointer ${
-                      activeTab === "ledger" ? "text-emerald-455 animate-fade-in" : ""
+                      activeTab === "ledger" ? "text-emerald-400 animate-fade-in" : ""
                     }`}
                   >
                     Ledger
@@ -327,7 +327,7 @@ export function ExpenseTracker() {
                   <button
                     onClick={() => setActiveTab("quick-add")}
                     className={`hover:text-zinc-200 transition cursor-pointer ${
-                      activeTab === "quick-add" ? "text-emerald-455 animate-fade-in" : ""
+                      activeTab === "quick-add" ? "text-emerald-400 animate-fade-in" : ""
                     }`}
                   >
                     Quick Add
@@ -336,7 +336,7 @@ export function ExpenseTracker() {
                   <button
                     onClick={() => setActiveTab("upcoming")}
                     className={`hover:text-zinc-200 transition cursor-pointer ${
-                      activeTab === "upcoming" ? "text-emerald-455 animate-fade-in" : ""
+                      activeTab === "upcoming" ? "text-emerald-400 animate-fade-in" : ""
                     }`}
                   >
                     Upcoming Expenses

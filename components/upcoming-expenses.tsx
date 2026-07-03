@@ -96,7 +96,7 @@ export function UpcomingExpenses({
       {/* List Section */}
       <div className={inline ? "space-y-3" : "mt-5 space-y-3"}>
         {loading ? (
-          <p className="text-xs text-zinc-550 animate-pulse">Loading upcoming expenses…</p>
+          <p className="text-xs text-zinc-500 animate-pulse">Loading upcoming expenses…</p>
         ) : upcomingExpenses.length > 0 ? (
           <ul className="space-y-2.5 max-h-[250px] overflow-y-auto pr-1">
             {upcomingExpenses.map((ue) => {
