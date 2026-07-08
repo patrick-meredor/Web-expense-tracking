@@ -28,6 +28,20 @@ export function UpcomingExpenses({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Pagination State & Logic
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 4;
+
+  const totalItems = upcomingExpenses.length;
+  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedExpenses = upcomingExpenses.slice(startIndex, endIndex);
+
+  if (currentPage > totalPages && totalPages > 0) {
+    setCurrentPage(totalPages);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -96,88 +110,116 @@ export function UpcomingExpenses({
       {/* List Section */}
       <div className={inline ? "space-y-3" : "mt-5 space-y-3"}>
         {loading ? (
-          <p className="text-xs text-zinc-500 animate-pulse">Loading upcoming expenses…</p>
-        ) : upcomingExpenses.length > 0 ? (
-          <ul className="space-y-2.5 max-h-[250px] overflow-y-auto pr-1">
-            {upcomingExpenses.map((ue) => {
-              const status = getDueStatus(ue.date);
-              return (
-                <li
-                  key={ue.id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-zinc-900 bg-zinc-950/30 p-3 rounded-xl hover:bg-zinc-950/50 transition duration-150"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className={`inline-block rounded-md px-2 py-0.5 text-[9px] font-semibold border ${status.color}`}>
-                        {status.label}
-                      </span>
-                      {ue.date && (
-                        <span className="text-[10px] text-zinc-505 font-medium">
-                          {formatDate(ue.date)}
+          <p className="text-xs text-zinc-500 animate-pulse">Loading upcoming expenses…</p>        ) : upcomingExpenses.length > 0 ? (
+          <>
+            <ul className="space-y-2.5 max-h-[250px] overflow-y-auto pr-1">
+              {paginatedExpenses.map((ue) => {
+                const status = getDueStatus(ue.date);
+                return (
+                  <li
+                    key={ue.id}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-zinc-900 bg-zinc-950/30 p-3 rounded-xl hover:bg-zinc-950/50 transition duration-150"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`inline-block rounded-md px-2 py-0.5 text-[9px] font-semibold border ${status.color}`}>
+                          {status.label}
                         </span>
+                        {ue.date && (
+                          <span className="text-[10px] text-zinc-505 font-medium">
+                            {formatDate(ue.date)}
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1 truncate text-sm font-semibold text-zinc-200">
+                        {ue.name}
+                      </p>
+                      {ue.details && (
+                        <p className="text-xs text-zinc-450 truncate mt-0.5">
+                          {ue.details}
+                        </p>
                       )}
                     </div>
-                    <p className="mt-1 truncate text-sm font-semibold text-zinc-200">
-                      {ue.name}
-                    </p>
-                    {ue.details && (
-                      <p className="text-xs text-zinc-450 truncate mt-0.5">
-                        {ue.details}
-                      </p>
-                    )}
-                  </div>
 
-                  <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
-                    <span className="text-sm sm:text-base font-bold tracking-tight text-amber-500 tabular-nums">
-                      {formatCurrency(ue.amount)}
-                    </span>
-                    <div className="flex gap-1">
-                      {/* Pay Button */}
-                      <button
-                        type="button"
-                        onClick={() => onPay(ue.id)}
-                        title="Mark as paid (records transaction and deducts from wallet)"
-                        className="rounded-lg p-1.5 text-zinc-450 transition duration-150 hover:bg-emerald-950/40 hover:text-emerald-400 hover:cursor-pointer flex items-center justify-center"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                          className="h-4 w-4"
+                    <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
+                      <span className="text-sm sm:text-base font-bold tracking-tight text-amber-500 tabular-nums">
+                        {formatCurrency(ue.amount)}
+                      </span>
+                      <div className="flex gap-1">
+                        {/* Pay Button */}
+                        <button
+                          type="button"
+                          onClick={() => onPay(ue.id)}
+                          title="Mark as paid (records transaction and deducts from wallet)"
+                          className="rounded-lg p-1.5 text-zinc-450 transition duration-150 hover:bg-emerald-950/40 hover:text-emerald-400 hover:cursor-pointer flex items-center justify-center"
                         >
-                          <path
-                            fillRule="evenodd"
-                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.8-9.8a1 1 0 00-1.6-1.2L9 11.2 7.8 10a1 1 0 00-1.6 1.2l2 2a1 1 0 001.6 0l4-4z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      </button>
-                      {/* Delete Button */}
-                      <button
-                        type="button"
-                        onClick={() => onDelete(ue.id)}
-                        title="Delete note"
-                        className="rounded-lg p-1.5 text-zinc-455 transition duration-150 hover:bg-zinc-900 hover:text-red-400 hover:cursor-pointer flex items-center justify-center"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                          className="h-4 w-4"
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            className="h-4 w-4"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.8-9.8a1 1 0 00-1.6-1.2L9 11.2 7.8 10a1 1 0 00-1.6 1.2l2 2a1 1 0 001.6 0l4-4z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </button>
+                        {/* Delete Button */}
+                        <button
+                          type="button"
+                          onClick={() => onDelete(ue.id)}
+                          title="Delete note"
+                          className="rounded-lg p-1.5 text-zinc-455 transition duration-150 hover:bg-zinc-900 hover:text-red-400 hover:cursor-pointer flex items-center justify-center"
                         >
-                          <path
-                            fillRule="evenodd"
-                            d="M8.75 1A2.75 2.75 0 006 5.75v.75H3.75a.75.75 0 000 1.5h.5v7.5A2.75 2.75 0 007 17.25h6a2.75 2.75 0 002.75-2.75v-7.5h.5a.75.75 0 000-1.5H14v-.75A2.75 2.75 0 0011.25 1h-3zm-1.5 4.5v-.75a1.25 1.25 0 011.25-1.25h3a1.25 1.25 0 011.25 1.25v.75H7.25z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      </button>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            className="h-4 w-4"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M8.75 1A2.75 2.75 0 006 5.75v.75H3.75a.75.75 0 000 1.5h.5v7.5A2.75 2.75 0 007 17.25h6a2.75 2.75 0 002.75-2.75v-7.5h.5a.75.75 0 000-1.5H14v-.75A2.75 2.75 0 0011.25 1h-3zm-1.5 4.5v-.75a1.25 1.25 0 011.25-1.25h3a1.25 1.25 0 011.25 1.25v.75H7.25z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+                  </li>
+                );
+              })}
+            </ul>
+
+            {totalPages > 1 && (
+              <div className="mt-4 flex items-center justify-between border-t border-zinc-900 pt-4 shrink-0">
+                <button
+                  type="button"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-3 py-1.5 text-xs font-semibold text-zinc-300 transition duration-150 hover:bg-zinc-800 hover:text-zinc-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  Previous
+                </button>
+                
+                <span className="text-xs text-zinc-500 font-medium tracking-tight">
+                  Page <span className="text-zinc-300 font-bold">{currentPage}</span> of{" "}
+                  <span className="text-zinc-300 font-bold">{totalPages}</span>
+                </span>
+
+                <button
+                  type="button"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                  className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-3 py-1.5 text-xs font-semibold text-zinc-350 transition duration-150 hover:bg-zinc-800 hover:text-zinc-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </>
         ) : (
           <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-900 py-6 px-4 text-center">
             <svg
