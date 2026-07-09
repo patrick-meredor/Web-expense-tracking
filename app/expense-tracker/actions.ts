@@ -23,10 +23,6 @@ export async function getTrackerData() {
     supabase.auth.getUser(),
   ])
 
-  if(walletResult) {
-    console.log(walletResult);
-  }
-
   if (walletResult.error) {
     const isMissingTable = walletResult.error.message.includes("does not exist")
     throw new Error(isMissingTable ? "Database tables not found." : walletResult.error.message)
