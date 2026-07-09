@@ -19,3 +19,19 @@ export function formatDate(date: string): string {
 export function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
 }
+
+export function formatDateTime(dateStr: string, createdAtStr: string): string {
+  const formattedDate = formatDate(dateStr);
+  try {
+    const d = new Date(createdAtStr);
+    if (!isNaN(d.getTime())) {
+      const timeStr = d.toLocaleTimeString("en-PH", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+      return `${formattedDate} • ${timeStr}`;
+    }
+  } catch (e) {}
+  return formattedDate;
+}

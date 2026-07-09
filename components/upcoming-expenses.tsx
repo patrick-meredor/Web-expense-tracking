@@ -30,7 +30,7 @@ export function UpcomingExpenses({
 
   // Pagination State & Logic
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 4;
+  const ITEMS_PER_PAGE = 6;
 
   const totalItems = upcomingExpenses.length;
   const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
@@ -111,38 +111,37 @@ export function UpcomingExpenses({
       <div className={inline ? "space-y-3" : "mt-5 space-y-3"}>
         {loading ? (
           <p className="text-xs text-zinc-500 animate-pulse">Loading upcoming expenses…</p>        ) : upcomingExpenses.length > 0 ? (
-          <>
-            <ul className="space-y-2.5 max-h-[250px] overflow-y-auto pr-1">
+          <>            <ul className="space-y-3 lg:max-h-[360px] overflow-y-auto pr-1 divide-y divide-zinc-900/60">
               {paginatedExpenses.map((ue) => {
                 const status = getDueStatus(ue.date);
                 return (
                   <li
                     key={ue.id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-zinc-900 bg-zinc-950/30 p-3 rounded-xl hover:bg-zinc-950/50 transition duration-150"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3.5 hover:bg-zinc-900/20 px-2.5 -mx-2.5 rounded-xl transition duration-150 border-b border-zinc-900/30"
                   >
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className={`inline-block rounded-md px-2 py-0.5 text-[9px] font-semibold border ${status.color}`}>
+                        <span className={`inline-block rounded px-1.5 py-0.5 text-[8.5px] font-bold border ${status.color}`}>
                           {status.label}
                         </span>
                         {ue.date && (
-                          <span className="text-[10px] text-zinc-505 font-medium">
+                          <span className="text-[10px] text-zinc-550 font-semibold">
                             {formatDate(ue.date)}
                           </span>
                         )}
                       </div>
-                      <p className="mt-1 truncate text-sm font-semibold text-zinc-200">
+                      <p className="mt-1.5 text-xs font-bold text-zinc-100 truncate">
                         {ue.name}
                       </p>
                       {ue.details && (
-                        <p className="text-xs text-zinc-450 truncate mt-0.5">
+                        <p className="text-[11px] text-zinc-450 truncate mt-0.5 font-medium">
                           {ue.details}
                         </p>
                       )}
                     </div>
 
-                    <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
-                      <span className="text-sm sm:text-base font-bold tracking-tight text-amber-500 tabular-nums">
+                    <div className="flex items-center justify-between sm:justify-end gap-3.5 shrink-0">
+                      <span className="text-xs sm:text-sm font-extrabold tracking-wide text-amber-500 tabular-nums">
                         {formatCurrency(ue.amount)}
                       </span>
                       <div className="flex gap-1">
@@ -151,13 +150,13 @@ export function UpcomingExpenses({
                           type="button"
                           onClick={() => onPay(ue.id)}
                           title="Mark as paid (records transaction and deducts from wallet)"
-                          className="rounded-lg p-1.5 text-zinc-450 transition duration-150 hover:bg-emerald-950/40 hover:text-emerald-400 hover:cursor-pointer flex items-center justify-center"
+                          className="rounded-lg p-1.5 text-zinc-550 transition duration-150 hover:bg-emerald-950 hover:text-emerald-400 hover:cursor-pointer flex items-center justify-center"
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
                             viewBox="0 0 20 20"
                             fill="currentColor"
-                            className="h-4 w-4"
+                            className="h-4.5 w-4.5"
                           >
                             <path
                               fillRule="evenodd"
@@ -171,13 +170,13 @@ export function UpcomingExpenses({
                           type="button"
                           onClick={() => onDelete(ue.id)}
                           title="Delete note"
-                          className="rounded-lg p-1.5 text-zinc-455 transition duration-150 hover:bg-zinc-900 hover:text-red-400 hover:cursor-pointer flex items-center justify-center"
+                          className="rounded-lg p-1.5 text-zinc-650 transition duration-150 hover:bg-zinc-950 hover:text-red-400 hover:cursor-pointer flex items-center justify-center"
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
                             viewBox="0 0 20 20"
                             fill="currentColor"
-                            className="h-4 w-4"
+                            className="h-4.5 w-4.5"
                           >
                             <path
                               fillRule="evenodd"
@@ -244,23 +243,22 @@ export function UpcomingExpenses({
 
       <hr className="my-5 border-zinc-900" />
 
-      {/* Add Form Section */}
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid gap-3 sm:grid-cols-2">
+      {/* Add Form Section */}      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid gap-3.5 sm:grid-cols-2">
           <label className="block">
-            <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-zinc-450">Name</span>
+            <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-zinc-500">Name</span>
             <input
               type="text"
               placeholder="Electric bill, rent…"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              className="w-full rounded-lg border border-zinc-800 bg-zinc-950/80 px-3 py-1.5 text-xs text-zinc-100 placeholder:text-zinc-700 outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition duration-200"
+              className="w-full rounded-lg border border-zinc-900 bg-zinc-950 px-3.5 py-2 text-xs text-zinc-150 placeholder:text-zinc-650 outline-none focus:border-emerald-500/40 focus:ring-1 focus:ring-emerald-500/40 transition duration-200"
             />
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-zinc-450">Amount</span>
+            <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-zinc-500">Amount</span>
             <input
               type="number"
               step="0.01"
@@ -269,36 +267,36 @@ export function UpcomingExpenses({
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               required
-              className="w-full rounded-lg border border-zinc-800 bg-zinc-950/80 px-3 py-1.5 text-xs text-zinc-100 placeholder:text-zinc-700 outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition duration-200"
+              className="w-full rounded-lg border border-zinc-900 bg-zinc-950 px-3.5 py-2 text-xs text-zinc-150 placeholder:text-zinc-650 outline-none focus:border-emerald-500/40 focus:ring-1 focus:ring-emerald-500/40 transition duration-200"
             />
           </label>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3.5 sm:grid-cols-2">
           <label className="block">
-            <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-zinc-450">Details (Optional)</span>
+            <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-zinc-500">Details (Optional)</span>
             <input
               type="text"
               placeholder="Account number, notes…"
               value={details}
               onChange={(e) => setDetails(e.target.value)}
-              className="w-full rounded-lg border border-zinc-800 bg-zinc-950/80 px-3 py-1.5 text-xs text-zinc-100 placeholder:text-zinc-700 outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition duration-200"
+              className="w-full rounded-lg border border-zinc-900 bg-zinc-950 px-3.5 py-2 text-xs text-zinc-150 placeholder:text-zinc-650 outline-none focus:border-emerald-500/40 focus:ring-1 focus:ring-emerald-500/40 transition duration-200"
             />
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-zinc-455">Due Date (Optional)</span>
+            <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-zinc-500">Due Date (Optional)</span>
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full rounded-lg border border-zinc-800 bg-zinc-950/80 px-3 py-1.5 text-xs text-zinc-100 outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition duration-200"
+              className="w-full rounded-lg border border-zinc-900 bg-zinc-950 px-3.5 py-2 text-xs text-zinc-150 outline-none focus:border-emerald-500/40 focus:ring-1 focus:ring-emerald-500/40 transition duration-200"
             />
           </label>
         </div>
 
         {error && (
-          <div className="rounded-lg border border-red-955 bg-red-955/20 px-3 py-2 text-[11px] text-red-400">
+          <div className="rounded-lg border border-red-955 bg-red-955/20 px-3 py-2 text-[11px] text-red-400 font-semibold">
             {error}
           </div>
         )}
@@ -306,7 +304,7 @@ export function UpcomingExpenses({
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-4 py-2 text-xs font-semibold text-emerald-300 transition duration-200 hover:bg-emerald-500/15 hover:border-emerald-500/40 hover:cursor-pointer"
+          className="w-full rounded-lg bg-emerald-400 px-4 py-2.5 text-xs font-bold text-zinc-950 transition duration-200 hover:bg-emerald-300 hover:cursor-pointer"
         >
           {submitting ? "Adding Note…" : "Add Upcoming Expense"}
         </button>

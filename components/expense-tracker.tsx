@@ -34,7 +34,8 @@ export function ExpenseTracker() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<"ledger" | "quick-add" | "upcoming">("ledger");
+  const [activeTab, setActiveTab] = useState<"ledger" | "upcoming">("ledger");
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [isAdjustBalanceOpen, setIsAdjustBalanceOpen] = useState(false);
   const [isCreateWalletOpen, setIsCreateWalletOpen] = useState(false);
   const [adjustBalanceValue, setAdjustBalanceValue] = useState("");
@@ -169,6 +170,12 @@ export function ExpenseTracker() {
     ? upcomingExpenses.filter((ue) => ue.wallet_id === activeWalletId)
     : [];
 
+  // Sum of positive transactions (Income)
+  const totalIncome = activeWalletTransactions
+    .filter((t) => t.amount >= 0)
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  // Sum of negative transactions (Expenses)
   const totalExpenses = activeWalletTransactions
     .filter((t) => t.amount < 0)
     .reduce((sum, t) => sum + t.amount, 0);
@@ -176,10 +183,28 @@ export function ExpenseTracker() {
   const totalUpcomingExpenses = activeUpcomingExpenses
     .reduce((sum, ue) => sum + ue.amount, 0);
 
+  // Formatted date string for calendar selection
+  const selectedDateStr = selectedDate 
+    ? `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`
+    : null;
+
+  // Filter transactions by selected calendar date
+  const displayedTransactions = selectedDateStr
+    ? activeWalletTransactions.filter((t) => t.date === selectedDateStr)
+    : activeWalletTransactions;
+
   return (
-    <div className="min-h-screen bg-zinc-950 flex flex-col text-zinc-100">
-      {/* Premium Header/Navbar */}
-      <Header userEmail={userEmail} handleSignOut={handleSignOut} loggingOut={loggingOut} />
+    <div className="min-h-screen bg-zinc-950 flex flex-col text-zinc-100 font-sans">
+      {/* Premium Header/Navbar with 3 stats cards integrated */}
+      <Header 
+        userEmail={userEmail} 
+        handleSignOut={handleSignOut} 
+        loggingOut={loggingOut} 
+        balance={activeWallet?.balance ?? 0}
+        expenses={totalExpenses}
+        upcoming={totalUpcomingExpenses}
+        loading={loading}
+      />
 
       {/* Main Content Area */}
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
@@ -199,69 +224,20 @@ export function ExpenseTracker() {
               setActiveWalletId={setActiveWalletId} 
               setIsCreateWalletOpen={setIsCreateWalletOpen} 
               setIsAdjustBalanceOpen={setIsAdjustBalanceOpen} 
+              selectedDate={selectedDate}
+              setSelectedDate={setSelectedDate}
+              income={totalIncome}
+              expenses={totalExpenses}
+              upcoming={totalUpcomingExpenses}
             />
           </div>
 
-          {/* Right Column: Cards (Top) & Tabs (Bottom) (9 cols) */}
-          <div className="lg:col-span-9 space-y-6">
-            {/* Top row cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Card 1: Balance */}
-              <div className="rounded-2xl border border-zinc-900 bg-zinc-900/40 p-3 flex flex-col justify-between min-h-[160px]">
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-455">
-                  Balance
-                </div>
-                <div className="text-3xl font-bold text-emerald-400 tracking-tight my-2 text-center">
-                  {loading ? (
-                    <span className="inline-block h-8 w-32 animate-pulse rounded bg-zinc-850" />
-                  ) : (
-                    formatCurrency(activeWallet?.balance ?? 0)
-                  )}
-                </div>
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-550">
-                  &nbsp;
-                </div>
-              </div>
-
-              {/* Card 2: Total Expenses */}
-              <div className="rounded-2xl border border-zinc-900 bg-zinc-900/40 p-3 flex flex-col justify-between min-h-[160px]">
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-455">
-                  Total Expenses
-                </div>
-                <div className="text-3xl font-bold text-red-400 tracking-tight my-2 text-center">
-                  {loading ? (
-                    <span className="inline-block h-8 w-32 animate-pulse rounded bg-zinc-850" />
-                  ) : (
-                    formatCurrency(totalExpenses)
-                  )}
-                </div>
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-550">
-                  &nbsp;
-                </div>
-              </div>
-
-              {/* Card 3: Total Upcoming Expenses */}
-              <div className="rounded-2xl border border-zinc-900 bg-zinc-900/40 p-3 flex flex-col justify-between min-h-[160px]">
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-455">
-                  Total Upcoming Expenses
-                </div>
-                <div className="text-3xl font-bold text-orange-400 tracking-tight my-2 text-center">
-                  {loading ? (
-                    <span className="inline-block h-8 w-32 animate-pulse rounded bg-zinc-850" />
-                  ) : (
-                    formatCurrency(totalUpcomingExpenses)
-                  )}
-                </div>
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-550">
-                  &nbsp;
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom tabbed container */}
-            <div className="rounded-2xl border border-zinc-900 bg-zinc-900/40 p-6 flex flex-col gap-6">
+          {/* Right Column: Ledger / Upcoming Tab (9 cols) */}
+          <div className="lg:col-span-9">
+            <div className="rounded-2xl border border-zinc-900 bg-zinc-950/40 p-6 flex flex-col gap-6 relative min-h-[580px]">
+              
               {/* Tabs Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-900 pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-900 pb-4 shrink-0">
                 <div className="flex flex-wrap items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-zinc-450 select-none">
                   <button
                     onClick={() => setActiveTab("ledger")}
@@ -273,31 +249,30 @@ export function ExpenseTracker() {
                   </button>
                   <span className="text-zinc-800">|</span>
                   <button
-                    onClick={() => setActiveTab("quick-add")}
-                    className={`hover:text-zinc-500 transition cursor-pointer ${
-                      activeTab === "quick-add" ? "text-emerald-400 animate-fade-in" : ""
-                    }`}
-                  >
-                    Quick Add
-                  </button>
-                  <span className="text-zinc-800">|</span>
-                  <button
                     onClick={() => setActiveTab("upcoming")}
                     className={`hover:text-zinc-500 transition cursor-pointer ${
                       activeTab === "upcoming" ? "text-emerald-400 animate-fade-in" : ""
                     }`}
                   >
-                    Upcoming Expenses
+                    Upcoming
                   </button>
                 </div>
 
-                <div className="text-xs text-zinc-400 font-medium">
+                <div className="text-xs text-zinc-400 font-semibold tracking-wider uppercase">
                   {activeTab === "ledger" && (
                     <>
                       <span className="text-emerald-455 font-bold mr-1">
-                        {activeWalletTransactions.length}
+                        {displayedTransactions.length}
                       </span>
-                      Transaction{activeWalletTransactions.length === 1 ? "" : "s"} Recorded!
+                      {selectedDateStr ? "Entries on this Day" : "Total Transactions"}
+                      {selectedDateStr && (
+                        <button
+                          onClick={() => setSelectedDate(undefined)}
+                          className="ml-2 px-1.5 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-[10px] text-zinc-400 font-bold border border-zinc-800 transition cursor-pointer"
+                        >
+                          Clear Date
+                        </button>
+                      )}
                     </>
                   )}
                   {activeTab === "upcoming" && (
@@ -305,11 +280,8 @@ export function ExpenseTracker() {
                       <span className="text-emerald-455 font-bold mr-1">
                         {activeUpcomingExpenses.length}
                       </span>
-                      Expense Reminder{activeUpcomingExpenses.length === 1 ? "" : "s"} Pending!
+                      Reminders Pending
                     </>
-                  )}
-                  {activeTab === "quick-add" && (
-                    <span className="text-zinc-500 animate-fade-in">Quick Add Transaction</span>
                   )}
                 </div>
               </div>
@@ -318,14 +290,12 @@ export function ExpenseTracker() {
               <div className="flex-1">
                 {activeTab === "ledger" && (
                   <TransactionList
-                    transactions={activeWalletTransactions}
+                    transactions={displayedTransactions}
                     loading={loading}
                     onDelete={handleDeleteTransaction}
+                    onSubmit={handleAddTransaction}
                     inline={true}
                   />
-                )}
-                {activeTab === "quick-add" && (
-                  <TransactionForm onSubmit={handleAddTransaction} inline={true} />
                 )}
                 {activeTab === "upcoming" && (
                   <UpcomingExpenses
