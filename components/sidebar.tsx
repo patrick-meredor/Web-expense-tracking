@@ -7,7 +7,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, Landmark, Settings, Wallet } from "lucide-react";
+import { ChevronDown, Settings, Wallet } from "lucide-react";
 import type { Wallet as WalletType } from "@/lib/types";
 import { Calendar } from "@/components/ui/calendar";
 import { formatCurrency } from "@/lib/format";
@@ -55,7 +55,7 @@ export default function Sidebar({
               className="w-full justify-between bg-zinc-950 border-zinc-900 text-zinc-100 hover:bg-zinc-900/60 hover:text-zinc-100 px-3 py-2 text-xs font-bold rounded-lg h-10 cursor-pointer uppercase tracking-wider"
             >
               <div className="flex items-center gap-2">
-                <Landmark className="h-4 w-4 text-zinc-400 shrink-0" />
+                <Wallet className="h-4 w-4 text-zinc-400 shrink-0" />
                 <span className={activeWallet ? "text-emerald-400 font-extrabold" : "text-zinc-400"}>
                   {activeWallet ? activeWallet.name : "Select Account"}
                 </span>
