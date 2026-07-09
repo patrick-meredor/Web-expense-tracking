@@ -359,7 +359,7 @@ export function ExpenseTracker() {
                 setAdjustBalanceValue("");
                 setIsAdjustBalanceOpen(false);
               } catch (err) {
-                // handled
+                console.error("Error adjusting balance:", err)
               }
             }} className="mt-4 space-y-4">
               <input
@@ -413,7 +413,7 @@ export function ExpenseTracker() {
                 setNewWalletBalance("");
                 setIsCreateWalletOpen(false);
               } catch (err) {
-                // handled
+                console.error("Error creating wallet:", err)
               }
             }} className="mt-4 space-y-4">
               <div className="space-y-3">

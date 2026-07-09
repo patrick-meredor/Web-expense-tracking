@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { formatCurrency, formatDate, todayISO } from "@/lib/format";
+import { formatCurrency, formatDate } from "@/lib/format";
 import type { UpcomingExpense } from "@/lib/types";
 
 type UpcomingExpensesProps = {
