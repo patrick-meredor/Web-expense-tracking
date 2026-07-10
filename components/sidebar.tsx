@@ -48,7 +48,7 @@ export default function Sidebar({
         </div>
         
         {/* Active Account Switcher */}
-        <DropdownMenu>
+        <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <Button
               variant="outline"
@@ -84,7 +84,7 @@ export default function Sidebar({
         </DropdownMenu>
 
         {/* Manage Account Actions Dropdown */}
-        <DropdownMenu>
+        <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <Button
               variant="outline"

@@ -28,7 +28,7 @@ export default function Header({
     <header className="sticky top-0 z-50 w-full border-b border-zinc-900 bg-zinc-950/80 backdrop-blur-md">
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Left: Brand logo */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink">
           <span className="font-family-pixel text-base sm:text-lg font-bold tracking-wider text-emerald-400">
             EXPENSE TRACKER
           </span>
@@ -97,14 +97,14 @@ export default function Header({
         {/* Right: Profile Actions */}
         <div className="flex items-center gap-3 shrink-0">
           {userEmail && (
-            <div className="flex items-center gap-1.5 text-xs text-zinc-400 font-semibold bg-zinc-900/30 px-3 py-1.5 rounded-lg border border-zinc-900/60">
+            <div className="flex items-center gap-1.5 text-xs text-zinc-400 font-semibold">
               <span className="hidden sm:inline-block max-w-[180px] truncate">
                 {userEmail}
               </span>
-              <div className="flex items-center justify-center h-5 w-5 rounded-full bg-zinc-800 text-zinc-300">
+              {/* <div className="flex items-center justify-center h-5 w-5 rounded-full bg-zinc-800 text-zinc-300">
                 <User className="h-3 w-3" />
               </div>
-              <ChevronDown className="h-3.5 w-3.5 text-zinc-500" />
+              <ChevronDown className="h-3.5 w-3.5 text-zinc-500" /> */}
             </div>
           )}
           

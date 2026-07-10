@@ -234,7 +234,7 @@ export function ExpenseTracker() {
 
           {/* Right Column: Ledger / Upcoming Tab (9 cols) */}
           <div className="lg:col-span-9">
-            <div className="rounded-2xl border border-zinc-900 bg-zinc-950/40 p-6 flex flex-col gap-6 relative min-h-[580px]">
+            <div className="rounded-2xl border border-zinc-900 bg-zinc-950/40 p-6 flex flex-col gap-6 relative min-h-[440px]">
               
               {/* Tabs Header */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-900 pb-4 shrink-0">

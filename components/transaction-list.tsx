@@ -65,7 +65,7 @@ export function TransactionList({
   }
 
   return (
-    <div className="relative flex flex-col justify-between min-h-[520px] pb-24">
+    <div className="relative flex flex-col justify-between min-h-[380px] pb-5">
       <div className="space-y-4 shrink-0">
         
         {/* Search Bar & Entries Count */}
