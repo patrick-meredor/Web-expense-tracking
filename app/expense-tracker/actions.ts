@@ -210,10 +210,19 @@ export async function payUpcomingExpenseRecord(
   const amount = Number(ueData.amount)
 
   // 2. Insert into transactions (negative amount since it's an expense)
+  const detailsStr = ueData.details || "";
+  let category: Category = "Bills";
+  let displayDetails = detailsStr;
+  const match = detailsStr.match(/^\[(Food|Bills|Transport|Income|Other|Bank Transfer|Shopping|Travel|Education|Entertainment|Health)\]\s*(.*)/);
+  if (match) {
+    category = match[1] as Category;
+    displayDetails = match[2];
+  }
+
   const { error: txError } = await supabase.from("transactions").insert({
     amount: -amount,
-    description: `${ueData.name}${ueData.details ? ` (${ueData.details})` : ""}`,
-    category: "Bills",
+    description: `${ueData.name}${displayDetails ? ` (${displayDetails})` : ""}`,
+    category: category,
     date: new Date().toISOString().slice(0, 10), // paid today
     wallet_id: walletId,
   })

@@ -221,6 +221,8 @@ export function ExpenseTracker() {
               activeWallet={activeWallet} 
               activeWalletId={activeWalletId} 
               wallets={wallets} 
+              loading={loading}
+              balance={activeWallet?.balance ?? 0}
               setActiveWalletId={setActiveWalletId} 
               setIsCreateWalletOpen={setIsCreateWalletOpen} 
               setIsAdjustBalanceOpen={setIsAdjustBalanceOpen} 

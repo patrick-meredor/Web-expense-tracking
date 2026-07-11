@@ -7,7 +7,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, Settings, Wallet } from "lucide-react";
+import { ChevronDown, Settings, Wallet, CreditCard, Calendar1, TrendingUp } from "lucide-react";
 import type { Wallet as WalletType } from "@/lib/types";
 import { Calendar } from "@/components/ui/calendar";
 import { formatCurrency } from "@/lib/format";
@@ -24,6 +24,8 @@ interface SidebarProps {
   income: number;
   expenses: number;
   upcoming: number;
+  balance: number;
+  loading: boolean;
 }
 
 export default function Sidebar({
@@ -38,7 +40,10 @@ export default function Sidebar({
   income,
   expenses,
   upcoming,
+  balance,
+  loading,
 }: SidebarProps) {
+  const absExpenses = Math.abs(expenses);
   return (
     <div className="space-y-6">
       {/* Account Section */}
@@ -113,6 +118,50 @@ export default function Sidebar({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+      
+      {/*Mobile*/}
+      <section className="md:hidden flex flex-row px-3 items-center justify-center gap-4 py-3 border border-zinc-900 rounded-lg">
+        {/*Balance Display*/}
+          <div className="px-3">
+            <div className="flex flex-row gap-1">
+              <CreditCard className="w-3.5 h-3.5 text-emerald-500"/>
+              <span className="uppercase tracking-wider text-zinc-400 font-bold text-[10px]">Balance</span>
+            </div>
+            <div className="text-sm font-bold text-emerald-400 mt-1 leading-none">
+              {loading ? (
+                    <span className="inline-block h-3.5 w-16 animate-pulse rounded bg-zinc-800" />
+                  ) : (
+                    formatCurrency(balance)
+              )}
+            </div>
+          </div>
+          <div className="px-3 border-l border-r border-zinc-800">
+            <div className="flex flex-row gap-1">
+              <TrendingUp className="w-3.5 h-3.5 text-red-500"/>
+              <span className="uppercase tracking-wider text-zinc-400 font-bold text-[10px]">Expenses</span>
+            </div>
+            <div className="text-sm font-bold text-red-400 mt-1 leading-none">
+              {loading ? (
+                    <span className="inline-block h-3.5 w-16 animate-pulse rounded bg-zinc-800" />
+                  ) : (
+                    formatCurrency(absExpenses)
+              )}
+            </div>
+          </div>
+          <div className="px-3">
+            <div className="flex flex-row gap-1">
+              <Calendar1 className="w-3.5 h-3.5 text-amber-500"/>
+              <span className="uppercase tracking-wider text-zinc-400 font-bold text-[10px]">Upcoming</span>
+            </div>
+            <div className="text-sm font-bold text-amber-400 mt-1 leading-none">
+              {loading ? (
+                    <span className="inline-block h-3.5 w-16 animate-pulse rounded bg-zinc-800" />
+                  ) : (
+                    formatCurrency(upcoming)
+              )}
+            </div>
+          </div>
+      </section>
 
       {/* Calendar Section */}
       <div className="space-y-2">

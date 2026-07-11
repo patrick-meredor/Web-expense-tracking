@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { formatCurrency, formatDate } from "@/lib/format";
-import type { UpcomingExpense } from "@/lib/types";
+import type { UpcomingExpense, Category } from "@/lib/types";
+import { X } from "lucide-react";
+import { CATEGORIES, CATEGORY_CONFIGS } from "@/lib/constants";
 
 type UpcomingExpensesProps = {
   upcomingExpenses: UpcomingExpense[];
@@ -25,12 +27,14 @@ export function UpcomingExpenses({
   const [details, setDetails] = useState("");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState("");
+  const [category, setCategory] = useState<Category>("Bills");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   // Pagination State & Logic
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 6;
+  const ITEMS_PER_PAGE = 3;
 
   const totalItems = upcomingExpenses.length;
   const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
@@ -58,11 +62,14 @@ export function UpcomingExpenses({
 
     setSubmitting(true);
     try {
-      await onAdd({ name, details, amount: parsed, date: date || null });
+      const formattedDetails = `[${category}]${details.trim() ? ` ${details.trim()}` : ""}`;
+      await onAdd({ name, details: formattedDetails, amount: parsed, date: date || null });
       setName("");
       setDetails("");
       setAmount("");
       setDate("");
+      setCategory("Bills");
+      setIsAddModalOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add upcoming expense.");
     } finally {
@@ -92,7 +99,7 @@ export function UpcomingExpenses({
   }
 
   const content = (
-    <div className={inline ? "w-full flex flex-col gap-4" : ""}>
+    <div className={inline ? "relative flex flex-col justify-between min-h-[380px] pb-5 w-full" : "w-full flex flex-col gap-4"}>
       {!inline && (
         <>
           <div className="flex items-center justify-between">
@@ -101,43 +108,64 @@ export function UpcomingExpenses({
               {upcomingExpenses.length} note{upcomingExpenses.length === 1 ? "" : "s"}
             </span>
           </div>
-          <p className="mt-1 text-xs text-zinc-500">
+          <p className="mt-1 text-xs text-zinc-505">
             Track expenses you need to pay soon. Mark them as paid to move to the ledger.
           </p>
         </>
       )}
 
       {/* List Section */}
-      <div className={inline ? "space-y-3" : "mt-5 space-y-3"}>
-        {loading ? (
-          <p className="text-xs text-zinc-500 animate-pulse">Loading upcoming expenses…</p>        ) : upcomingExpenses.length > 0 ? (
-          <>            <ul className="space-y-3 lg:max-h-[360px] overflow-y-auto pr-1 divide-y divide-zinc-900/60">
+      <div className="flex-1 flex flex-col justify-between">
+        <div className="space-y-3">
+          {loading ? (
+            <p className="text-xs text-zinc-500 animate-pulse">Loading upcoming expenses…</p>
+          ) : upcomingExpenses.length > 0 ? (
+            <ul className="space-y-3 lg:max-h-[360px] pr-1 divide-y divide-zinc-900/60">
               {paginatedExpenses.map((ue) => {
                 const status = getDueStatus(ue.date);
+                const detailsStr = ue.details || "";
+                let itemCategory: Category = "Bills";
+                let displayDetails = detailsStr;
+                const match = detailsStr.match(/^\[(Food|Bills|Transport|Income|Other|Bank Transfer|Shopping|Travel|Education|Entertainment|Health)\]\s*(.*)/);
+                if (match) {
+                  itemCategory = match[1] as Category;
+                  displayDetails = match[2];
+                }
+                const config = CATEGORY_CONFIGS[itemCategory] || CATEGORY_CONFIGS.Other;
+                const IconComponent = config.icon;
+
                 return (
                   <li
                     key={ue.id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3.5 hover:bg-zinc-900/20 px-2.5 -mx-2.5 rounded-xl transition duration-150 border-b border-zinc-900/30"
+                    className="flex items-center justify-between gap-4 py-3.5 hover:bg-zinc-900/20 px-2.5 -mx-2.5 rounded-xl transition duration-150 border-b border-zinc-900/30"
                   >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className={`inline-block rounded px-1.5 py-0.5 text-[8.5px] font-bold border ${status.color}`}>
-                          {status.label}
-                        </span>
-                        {ue.date && (
-                          <span className="text-[10px] text-zinc-550 font-semibold">
-                            {formatDate(ue.date)}
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      {/* Left: Circular Icon */}
+                      <div className={`flex items-center justify-center h-10 w-10 rounded-full border shrink-0 ${config.iconBg}`}>
+                        <IconComponent className="h-4.5 w-4.5" />
+                      </div>
+
+                      {/* Details Block */}
+                      <div className="min-w-0 flex flex-col">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`inline-block rounded px-1.5 py-0.5 text-[8.5px] font-bold border ${status.color}`}>
+                            {status.label}
                           </span>
+                          {ue.date && (
+                            <span className="text-[10px] text-zinc-550 font-semibold">
+                              {formatDate(ue.date)}
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-1.5 text-xs font-bold text-zinc-100 truncate">
+                          {ue.name}
+                        </p>
+                        {displayDetails && (
+                          <p className="text-[11px] text-zinc-450 truncate mt-0.5 font-medium">
+                            {displayDetails}
+                          </p>
                         )}
                       </div>
-                      <p className="mt-1.5 text-xs font-bold text-zinc-100 truncate">
-                        {ue.name}
-                      </p>
-                      {ue.details && (
-                        <p className="text-[11px] text-zinc-450 truncate mt-0.5 font-medium">
-                          {ue.details}
-                        </p>
-                      )}
                     </div>
 
                     <div className="flex items-center justify-between sm:justify-end gap-3.5 shrink-0">
@@ -191,124 +219,171 @@ export function UpcomingExpenses({
                 );
               })}
             </ul>
+          ) : (
+            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-900 py-12 px-4 text-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className="h-6 w-6 text-zinc-700 mb-2 animate-bounce"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.03 0 1.9.693 2.166 1.638m-7.377 2.24a4.5 4.5 0 1 1 9.01 0c-.002.072-.007.143-.015.214m-9.01 0c.002.072.007.143.015.214m0 0zm-5.388 4.418a4.419 4.419 0 0 1 0-8.837m0 8.837a4.418 4.418 0 0 1 0-8.836"
+                />
+              </svg>
+              <p className="text-xs font-bold text-zinc-500">No upcoming expenses</p>
+              <p className="mt-1 text-[10px] text-zinc-600">Use the floating + button to add a reminder.</p>
+            </div>
+          )}
+        </div>
 
-            {totalPages > 1 && (
-              <div className="mt-4 flex items-center justify-between border-t border-zinc-900 pt-4 shrink-0">
-                <button
-                  type="button"
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                  className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-3 py-1.5 text-xs font-semibold text-zinc-300 transition duration-150 hover:bg-zinc-800 hover:text-zinc-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  Previous
-                </button>
-                
-                <span className="text-xs text-zinc-500 font-medium tracking-tight">
-                  Page <span className="text-zinc-300 font-bold">{currentPage}</span> of{" "}
-                  <span className="text-zinc-300 font-bold">{totalPages}</span>
-                </span>
-
-                <button
-                  type="button"
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                  className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-3 py-1.5 text-xs font-semibold text-zinc-350 transition duration-150 hover:bg-zinc-800 hover:text-zinc-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  Next
-                </button>
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-900 py-6 px-4 text-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              className="h-5 w-5 text-zinc-650 mb-1.5"
+        {upcomingExpenses.length > 0 && totalPages > 1 && (
+          <div className="mt-6 flex items-center justify-between border-t border-zinc-900 pt-4 shrink-0">
+            <button
+              type="button"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              className="rounded-lg border border-zinc-900 bg-zinc-950 px-3 py-1.5 text-xs font-bold text-zinc-400 transition duration-150 hover:bg-zinc-900 hover:text-zinc-200 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.03 0 1.9.693 2.166 1.638m-7.377 2.24a4.5 4.5 0 1 1 9.01 0c-.002.072-.007.143-.015.214m-9.01 0c.002.072.007.143.015.214m0 0zm-5.388 4.418a4.419 4.419 0 0 1 0-8.837m0 8.837a4.418 4.418 0 0 1 0-8.836"
-              />
-            </svg>
-            <p className="text-xs font-semibold text-zinc-500">No upcoming expenses</p>
-            <p className="text-[10px] text-zinc-600 mt-0.5">Use the form below to add a reminder</p>
+              Previous
+            </button>
+            
+            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+              Page <span className="text-zinc-300 font-black">{currentPage}</span> of{" "}
+              <span className="text-zinc-300 font-black">{totalPages}</span>
+            </span>
+
+            <button
+              type="button"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+              className="rounded-lg border border-zinc-900 bg-zinc-950 px-3 py-1.5 text-xs font-bold text-zinc-400 transition duration-150 hover:bg-zinc-900 hover:text-zinc-200 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            >
+              Next
+            </button>
           </div>
         )}
       </div>
 
-      <hr className="my-5 border-zinc-900" />
-
-      {/* Add Form Section */}      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid gap-3.5 sm:grid-cols-2">
-          <label className="block">
-            <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-zinc-500">Name</span>
-            <input
-              type="text"
-              placeholder="Electric bill, rent…"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className="w-full rounded-lg border border-zinc-900 bg-zinc-950 px-3.5 py-2 text-xs text-zinc-150 placeholder:text-zinc-650 outline-none focus:border-emerald-500/40 focus:ring-1 focus:ring-emerald-500/40 transition duration-200"
-            />
-          </label>
-
-          <label className="block">
-            <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-zinc-500">Amount</span>
-            <input
-              type="number"
-              step="0.01"
-              inputMode="decimal"
-              placeholder="PHP 0.00"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              required
-              className="w-full rounded-lg border border-zinc-900 bg-zinc-950 px-3.5 py-2 text-xs text-zinc-150 placeholder:text-zinc-650 outline-none focus:border-emerald-500/40 focus:ring-1 focus:ring-emerald-500/40 transition duration-200"
-            />
-          </label>
-        </div>
-
-        <div className="grid gap-3.5 sm:grid-cols-2">
-          <label className="block">
-            <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-zinc-500">Details (Optional)</span>
-            <input
-              type="text"
-              placeholder="Account number, notes…"
-              value={details}
-              onChange={(e) => setDetails(e.target.value)}
-              className="w-full rounded-lg border border-zinc-900 bg-zinc-950 px-3.5 py-2 text-xs text-zinc-150 placeholder:text-zinc-650 outline-none focus:border-emerald-500/40 focus:ring-1 focus:ring-emerald-500/40 transition duration-200"
-            />
-          </label>
-
-          <label className="block">
-            <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-zinc-500">Due Date (Optional)</span>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="w-full rounded-lg border border-zinc-900 bg-zinc-950 px-3.5 py-2 text-xs text-zinc-150 outline-none focus:border-emerald-500/40 focus:ring-1 focus:ring-emerald-500/40 transition duration-200"
-            />
-          </label>
-        </div>
-
-        {error && (
-          <div className="rounded-lg border border-red-955 bg-red-955/20 px-3 py-2 text-[11px] text-red-400 font-semibold">
-            {error}
-          </div>
-        )}
-
+      {/* Floating Action Button (FAB) for adding upcoming expenses */}
+      <div className="fixed bottom-6 right-6 md:bottom-8 md:right-8 flex flex-col items-center gap-1.5 z-40">
         <button
-          type="submit"
-          disabled={submitting}
-          className="w-full rounded-lg bg-emerald-400 px-4 py-2.5 text-xs font-bold text-zinc-950 transition duration-200 hover:bg-emerald-300 hover:cursor-pointer"
+          onClick={() => setIsAddModalOpen(true)}
+          className="h-10 w-10 rounded-full bg-amber-500 hover:bg-amber-400 text-zinc-950 flex items-center justify-center shadow-2xl transition duration-200 hover:scale-110 cursor-pointer border border-amber-400/30"
+          title="Add Upcoming Expense"
         >
-          {submitting ? "Adding Note…" : "Add Upcoming Expense"}
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="white" className="h-5 w-4">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
         </button>
-      </form>
+      </div>
+
+      {/* Custom Upcoming Expense Form Modal Overlay */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="w-full max-w-md rounded-2xl border border-zinc-900 bg-zinc-950 p-6 shadow-2xl relative">
+            
+            {/* Close Button */}
+            <button
+              onClick={() => setIsAddModalOpen(false)}
+              className="absolute top-4 right-4 text-zinc-500 hover:text-zinc-300 transition cursor-pointer"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            
+            <h3 className="text-sm font-bold uppercase tracking-wider text-amber-500">Add Upcoming Expense</h3>
+            <p className="mt-1 text-xs text-zinc-550">Create a reminder for an upcoming expense.</p>
+            
+            <div className="mt-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid gap-3.5 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-zinc-500">Name</span>
+                    <input
+                      type="text"
+                      placeholder="Electric bill, rent…"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
+                      className="w-full rounded-lg border border-zinc-900 bg-zinc-950 px-3.5 py-2 text-xs text-zinc-150 placeholder:text-zinc-650 outline-none focus:border-emerald-500/40 focus:ring-1 focus:ring-emerald-500/40 transition duration-200"
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">Category</span>
+                    <select
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value as Category)}
+                      className="w-full rounded-lg border border-zinc-800 bg-zinc-950/80 px-3.5 py-2 text-sm text-zinc-100 outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition duration-200"
+                    >
+                      {CATEGORIES.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-zinc-500">Amount</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      inputMode="decimal"
+                      placeholder="PHP 0.00"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      required
+                      className="w-full rounded-lg border border-zinc-900 bg-zinc-950 px-3.5 py-2 text-xs text-zinc-150 placeholder:text-zinc-650 outline-none focus:border-emerald-500/40 focus:ring-1 focus:ring-emerald-500/40 transition duration-200"
+                    />
+                  </label>
+                </div>
+
+                <div className="grid gap-3.5 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-zinc-500">Details (Optional)</span>
+                    <input
+                      type="text"
+                      placeholder="Account number, notes…"
+                      value={details}
+                      onChange={(e) => setDetails(e.target.value)}
+                      className="w-full rounded-lg border border-zinc-900 bg-zinc-950 px-3.5 py-2 text-xs text-zinc-150 placeholder:text-zinc-650 outline-none focus:border-emerald-500/40 focus:ring-1 focus:ring-emerald-500/40 transition duration-200"
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-zinc-500">Due Date (Optional)</span>
+                    <input
+                      type="date"
+                      value={date}
+                      onChange={(e) => setDate(e.target.value)}
+                      className="w-full rounded-lg border border-zinc-900 bg-zinc-950 px-3.5 py-2 text-xs text-zinc-150 outline-none focus:border-emerald-500/40 focus:ring-1 focus:ring-emerald-500/40 transition duration-200"
+                    />
+                  </label>
+                </div>
+
+                {error && (
+                  <div className="rounded-lg border border-red-955 bg-red-955/20 px-3 py-2 text-[11px] text-red-400 font-semibold">
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full rounded-lg bg-emerald-400 px-4 py-2.5 text-xs font-bold text-zinc-950 transition duration-200 hover:bg-emerald-300 hover:cursor-pointer"
+                >
+                  {submitting ? "Adding Note…" : "Add Upcoming Expense"}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
