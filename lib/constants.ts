@@ -9,7 +9,8 @@ import {
   GraduationCap, 
   Film, 
   Activity, 
-  MoreHorizontal 
+  MoreHorizontal,
+  type LucideIcon
 } from "lucide-react";
 import type { Category } from "./types";
 
@@ -42,7 +43,7 @@ export const CATEGORY_COLORS = {
 };
 
 export const CATEGORY_CONFIGS: Record<Category, {
-  icon: any;
+  icon: LucideIcon;
   iconBg: string;
   badgeStyle: string;
 }> = {
