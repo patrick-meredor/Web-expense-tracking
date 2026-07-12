@@ -70,7 +70,7 @@ export function LoginForm({
                   <FieldLabel htmlFor="password">Password</FieldLabel>
                   <a
                     href="#"
-                    className="ml-auto inline-block text-xs text-muted-foreground underline-offset-4 hover:text-emerald-400"
+                    className="ml-auto inline-block text-muted-foreground underline-offset-4 hover:text-emerald-400"
                   >
                     Forgot your password?
                   </a>
