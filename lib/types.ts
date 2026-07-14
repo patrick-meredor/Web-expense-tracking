@@ -10,6 +10,7 @@ export type Wallet = {
 export type Transaction = {
   id: string;
   wallet_id: number;
+  user_id?: string;
   amount: number;
   description: string;
   category: Category;
@@ -20,6 +21,7 @@ export type Transaction = {
 export type UpcomingExpense = {
   id: string;
   wallet_id: number;
+  user_id?: string;
   name: string;
   details: string;
   amount: number;
