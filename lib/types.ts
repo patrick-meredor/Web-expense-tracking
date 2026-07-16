@@ -2,6 +2,7 @@ export type Category = "Food" | "Bills" | "Transport" | "Income" | "Other" | "Ba
 
 export type Wallet = {
   id: number;
+  user_id?: string;
   name: string;
   balance: number;
   updated_at: string;
@@ -9,6 +10,7 @@ export type Wallet = {
 
 export type Transaction = {
   id: string;
+  user_id?: string;
   wallet_id: number;
   user_id?: string;
   amount: number;
@@ -20,6 +22,7 @@ export type Transaction = {
 
 export type UpcomingExpense = {
   id: string;
+  user_id?: string;
   wallet_id: number;
   user_id?: string;
   name: string;

@@ -82,9 +82,13 @@ export async function adjustWalletBalance(walletId: number, newBalance: number) 
 export async function createNewWallet(name: string, initialBalance: number) {
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
+  
+  const { data: { user } } = await supabase.auth.getUser()
+  const user_id = user?.id
+
   const { data, error } = await supabase
     .from("wallet")
-    .insert({ name, balance: initialBalance })
+    .insert({ name, balance: initialBalance, ...(user_id ? { user_id } : {}) })
     .select()
 
   if (error) throw new Error(error.message)
