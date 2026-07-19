@@ -19,6 +19,7 @@ interface SidebarProps {
   setActiveWalletId: (id: number) => void;
   setIsCreateWalletOpen: (open: boolean) => void;
   setIsAdjustBalanceOpen: (open: boolean) => void;
+  setIsPortionIncomeOpen: (open: boolean) => void;
   selectedDate: Date | undefined;
   setSelectedDate: (date: Date | undefined) => void;
   income: number;
@@ -35,6 +36,7 @@ export default function Sidebar({
   setActiveWalletId,
   setIsCreateWalletOpen,
   setIsAdjustBalanceOpen,
+  setIsPortionIncomeOpen,
   selectedDate,
   setSelectedDate,
   income,
@@ -114,6 +116,12 @@ export default function Sidebar({
               className="cursor-pointer font-semibold text-xs focus:bg-zinc-900 focus:text-zinc-100 text-zinc-400 hover:text-zinc-250 py-2.5"
             >
               Add New Account
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => setIsPortionIncomeOpen(true)}
+              className="cursor-pointer font-semibold text-xs focus:bg-zinc-900 focus:text-zinc-100 text-zinc-400 hover:text-zinc-250 py-2.5"
+            >
+              Portion the Income
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

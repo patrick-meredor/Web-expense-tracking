@@ -8,7 +8,12 @@ import { UpcomingExpenses } from "@/components/upcoming-expenses";
 import { createClient } from "@/lib/supabase/client";
 import Header from "@/components/header";
 import Sidebar from "@/components/sidebar";
-import type { Category, Transaction, Wallet, UpcomingExpense } from "@/lib/types";
+import type {
+  Category,
+  Transaction,
+  Wallet,
+  UpcomingExpense,
+} from "@/lib/types";
 import { formatCurrency } from "@/lib/format";
 
 import {
@@ -19,7 +24,7 @@ import {
   deleteTransactionRecord,
   addUpcomingExpenseRecord,
   deleteUpcomingExpenseRecord,
-  payUpcomingExpenseRecord
+  payUpcomingExpenseRecord,
 } from "@/app/expense-tracker/actions";
 
 export function ExpenseTracker() {
@@ -28,7 +33,9 @@ export function ExpenseTracker() {
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [activeWalletId, setActiveWalletId] = useState<number | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [upcomingExpenses, setUpcomingExpenses] = useState<UpcomingExpense[]>([]);
+  const [upcomingExpenses, setUpcomingExpenses] = useState<UpcomingExpense[]>(
+    [],
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -38,9 +45,13 @@ export function ExpenseTracker() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [isAdjustBalanceOpen, setIsAdjustBalanceOpen] = useState(false);
   const [isCreateWalletOpen, setIsCreateWalletOpen] = useState(false);
+  const [isPortionIncomeOpen, setIsPortionIncomeOpen] = useState(false);
   const [adjustBalanceValue, setAdjustBalanceValue] = useState("");
+  const [portionIncomeAmount, setPortionIncomeAmount] = useState("");
   const [newWalletName, setNewWalletName] = useState("");
   const [newWalletBalance, setNewWalletBalance] = useState("");
+
+  const portionIncomeAmountAsNumber = parseFloat(portionIncomeAmount) || 0;
 
   const loadData = useCallback(async () => {
     try {
@@ -54,12 +65,18 @@ export function ExpenseTracker() {
 
       // Set active default wallet fallback safely
       if (data.wallets.length > 0) {
-        setActiveWalletId((prev) => 
-          prev !== null && data.wallets.some((w) => w.id === prev) ? prev : data.wallets[0].id
+        setActiveWalletId((prev) =>
+          prev !== null && data.wallets.some((w) => w.id === prev)
+            ? prev
+            : data.wallets[0].id,
         );
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An unexpected error occurred loading data.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "An unexpected error occurred loading data.",
+      );
     } finally {
       setLoading(false);
     }
@@ -88,7 +105,9 @@ export function ExpenseTracker() {
       await adjustWalletBalance(activeWalletId, newBalance);
       await loadData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to adjust balance.");
+      setError(
+        err instanceof Error ? err.message : "Failed to adjust balance.",
+      );
     }
   }
 
@@ -103,7 +122,9 @@ export function ExpenseTracker() {
       await addTransactionRecord(activeWalletId, activeWallet.balance, data);
       await loadData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to add transaction.");
+      setError(
+        err instanceof Error ? err.message : "Failed to add transaction.",
+      );
     }
   }
 
@@ -118,7 +139,9 @@ export function ExpenseTracker() {
       await deleteTransactionRecord(targetTx, walletBalance);
       await loadData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete transaction.");
+      setError(
+        err instanceof Error ? err.message : "Failed to delete transaction.",
+      );
     }
   }
 
@@ -132,13 +155,20 @@ export function ExpenseTracker() {
     }
   }
 
-  async function handleAddUpcomingExpense(data: { name: string; details: string; amount: number; date: string | null }) {
+  async function handleAddUpcomingExpense(data: {
+    name: string;
+    details: string;
+    amount: number;
+    date: string | null;
+  }) {
     if (activeWalletId === null) return;
     try {
       await addUpcomingExpenseRecord(activeWalletId, data);
       await loadData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to add upcoming expense.");
+      setError(
+        err instanceof Error ? err.message : "Failed to add upcoming expense.",
+      );
     }
   }
 
@@ -147,7 +177,11 @@ export function ExpenseTracker() {
       await deleteUpcomingExpenseRecord(id);
       await loadData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete upcoming expense.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to delete upcoming expense.",
+      );
     }
   }
 
@@ -157,18 +191,22 @@ export function ExpenseTracker() {
       await payUpcomingExpenseRecord(id, activeWalletId, activeWallet.balance);
       await loadData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to pay upcoming expense.");
+      setError(
+        err instanceof Error ? err.message : "Failed to pay upcoming expense.",
+      );
     }
   }
 
   const activeWallet = wallets.find((w) => w.id === activeWalletId) || null;
-  const activeWalletTransactions = activeWalletId !== null
-    ? transactions.filter((t) => t.wallet_id === activeWalletId)
-    : [];
+  const activeWalletTransactions =
+    activeWalletId !== null
+      ? transactions.filter((t) => t.wallet_id === activeWalletId)
+      : [];
 
-  const activeUpcomingExpenses = activeWalletId !== null
-    ? upcomingExpenses.filter((ue) => ue.wallet_id === activeWalletId)
-    : [];
+  const activeUpcomingExpenses =
+    activeWalletId !== null
+      ? upcomingExpenses.filter((ue) => ue.wallet_id === activeWalletId)
+      : [];
 
   // Sum of positive transactions (Income)
   const totalIncome = activeWalletTransactions
@@ -180,11 +218,13 @@ export function ExpenseTracker() {
     .filter((t) => t.amount < 0)
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const totalUpcomingExpenses = activeUpcomingExpenses
-    .reduce((sum, ue) => sum + ue.amount, 0);
+  const totalUpcomingExpenses = activeUpcomingExpenses.reduce(
+    (sum, ue) => sum + ue.amount,
+    0,
+  );
 
   // Formatted date string for calendar selection
-  const selectedDateStr = selectedDate 
+  const selectedDateStr = selectedDate
     ? `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`
     : null;
 
@@ -196,10 +236,10 @@ export function ExpenseTracker() {
   return (
     <div className="min-h-screen bg-zinc-950 flex flex-col text-zinc-100 font-sans">
       {/* Premium Header/Navbar with 3 stats cards integrated */}
-      <Header 
-        userEmail={userEmail} 
-        handleSignOut={handleSignOut} 
-        loggingOut={loggingOut} 
+      <Header
+        userEmail={userEmail}
+        handleSignOut={handleSignOut}
+        loggingOut={loggingOut}
         balance={activeWallet?.balance ?? 0}
         expenses={totalExpenses}
         upcoming={totalUpcomingExpenses}
@@ -217,15 +257,16 @@ export function ExpenseTracker() {
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 items-start">
           {/* Left Column: Sidebar (3 cols) */}
           <div className="space-y-6 lg:col-span-3">
-            <Sidebar 
-              activeWallet={activeWallet} 
-              activeWalletId={activeWalletId} 
-              wallets={wallets} 
+            <Sidebar
+              activeWallet={activeWallet}
+              activeWalletId={activeWalletId}
+              wallets={wallets}
               loading={loading}
               balance={activeWallet?.balance ?? 0}
-              setActiveWalletId={setActiveWalletId} 
-              setIsCreateWalletOpen={setIsCreateWalletOpen} 
-              setIsAdjustBalanceOpen={setIsAdjustBalanceOpen} 
+              setActiveWalletId={setActiveWalletId}
+              setIsCreateWalletOpen={setIsCreateWalletOpen}
+              setIsAdjustBalanceOpen={setIsAdjustBalanceOpen}
+              setIsPortionIncomeOpen={setIsPortionIncomeOpen}
               selectedDate={selectedDate}
               setSelectedDate={setSelectedDate}
               income={totalIncome}
@@ -237,14 +278,15 @@ export function ExpenseTracker() {
           {/* Right Column: Ledger / Upcoming Tab (9 cols) */}
           <div className="lg:col-span-9">
             <div className="rounded-2xl border border-zinc-900 bg-zinc-950/40 p-6 flex flex-col gap-6 relative min-h-[440px]">
-              
               {/* Tabs Header */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-900 pb-4 shrink-0">
                 <div className="flex flex-wrap items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-zinc-450 select-none">
                   <button
                     onClick={() => setActiveTab("ledger")}
                     className={`hover:text-zinc-500 transition cursor-pointer ${
-                      activeTab === "ledger" ? "text-emerald-400 animate-fade-in pointer-events-none" : ""
+                      activeTab === "ledger"
+                        ? "text-emerald-400 animate-fade-in pointer-events-none"
+                        : ""
                     }`}
                   >
                     Ledger
@@ -253,7 +295,9 @@ export function ExpenseTracker() {
                   <button
                     onClick={() => setActiveTab("upcoming")}
                     className={`hover:text-zinc-500 transition cursor-pointer ${
-                      activeTab === "upcoming" ? "text-emerald-400 animate-fade-in" : ""
+                      activeTab === "upcoming"
+                        ? "text-emerald-400 animate-fade-in"
+                        : ""
                     }`}
                   >
                     Upcoming
@@ -266,7 +310,9 @@ export function ExpenseTracker() {
                       <span className="text-emerald-455 font-bold mr-1">
                         {displayedTransactions.length}
                       </span>
-                      {selectedDateStr ? "Entries on this Day" : "Total Transactions"}
+                      {selectedDateStr
+                        ? "Entries on this Day"
+                        : "Total Transactions"}
                       {selectedDateStr && (
                         <button
                           onClick={() => setSelectedDate(undefined)}
@@ -319,21 +365,28 @@ export function ExpenseTracker() {
       {isAdjustBalanceOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="w-full max-w-md rounded-2xl border border-zinc-900 bg-zinc-950 p-6 shadow-2xl">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-emerald-455">Adjust Balance</h3>
-            <p className="mt-1 text-xs text-zinc-505">Set a new balance for {activeWallet?.name || "wallet"}.</p>
-            
-            <form onSubmit={async (e) => {
-              e.preventDefault();
-              const parsed = parseFloat(adjustBalanceValue);
-              if (Number.isNaN(parsed)) return;
-              try {
-                await handleAdjustBalance(parsed);
-                setAdjustBalanceValue("");
-                setIsAdjustBalanceOpen(false);
-              } catch (err) {
-                console.error("Error adjusting balance:", err)
-              }
-            }} className="mt-4 space-y-4">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-emerald-455">
+              Adjust Balance
+            </h3>
+            <p className="mt-1 text-xs text-zinc-505">
+              Set a new balance for {activeWallet?.name || "wallet"}.
+            </p>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const parsed = parseFloat(adjustBalanceValue);
+                if (Number.isNaN(parsed)) return;
+                try {
+                  await handleAdjustBalance(parsed);
+                  setAdjustBalanceValue("");
+                  setIsAdjustBalanceOpen(false);
+                } catch (err) {
+                  console.error("Error adjusting balance:", err);
+                }
+              }}
+              className="mt-4 space-y-4"
+            >
               <input
                 type="number"
                 step="0.01"
@@ -371,23 +424,30 @@ export function ExpenseTracker() {
       {/* Add Account Modal */}
       {isCreateWalletOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl border border-zinc-900 bg-zinc-955/80 p-6 shadow-2xl">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-emerald-455">Add Account</h3>
-            <p className="mt-1 text-xs text-zinc-505">Create a new wallet account.</p>
-            
-            <form onSubmit={async (e) => {
-              e.preventDefault();
-              if (!newWalletName.trim()) return;
-              const parsedBalance = parseFloat(newWalletBalance) || 0;
-              try {
-                await handleCreateWallet(newWalletName.trim(), parsedBalance);
-                setNewWalletName("");
-                setNewWalletBalance("");
-                setIsCreateWalletOpen(false);
-              } catch (err) {
-                console.error("Error creating wallet:", err)
-              }
-            }} className="mt-4 space-y-4">
+          <div className="w-full max-w-md rounded-2xl border border-zinc-900 bg-zinc-950 p-6 shadow-2xl">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-emerald-455">
+              Add Account
+            </h3>
+            <p className="mt-1 text-xs text-zinc-505">
+              Create a new wallet account.
+            </p>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!newWalletName.trim()) return;
+                const parsedBalance = parseFloat(newWalletBalance) || 0;
+                try {
+                  await handleCreateWallet(newWalletName.trim(), parsedBalance);
+                  setNewWalletName("");
+                  setNewWalletBalance("");
+                  setIsCreateWalletOpen(false);
+                } catch (err) {
+                  console.error("Error creating wallet:", err);
+                }
+              }}
+              className="mt-4 space-y-4"
+            >
               <div className="space-y-3">
                 <input
                   type="text"
@@ -427,6 +487,43 @@ export function ExpenseTracker() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {isPortionIncomeOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl border border-zinc-900 bg-zinc-950 p-6 shadow-2xl">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-emerald-455">
+              Portion the Income
+            </h3>
+            <p className="mt-1 text-xs text-zinc-505">
+              Portion the income into different wallets.
+            </p>
+            <div className="flex flex-col mt-4 space-y-4">
+              <input
+                type="number"
+                placeholder="Amount"
+                value={portionIncomeAmount}
+                onChange={(e) => setPortionIncomeAmount(e.target.value)}
+                className="w-full rounded-lg border border-zinc-800 bg-zinc-900/40 px-3.5 py-2 text-sm text-zinc-100 placeholder:text-zinc-650 focus:border-emerald-500/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+              />
+              <div className="flex flex-row justify-around border-zinc-800 bg-zinc-900/40 p-2 rounded-lg gap-1 border">
+                <p className="uppercase tracking-wider text-zinc-400 text-sm">50%: <span className="text-emerald-400 font-bold">{formatCurrency(portionIncomeAmountAsNumber * 0.50)}</span></p>
+                <p className="uppercase tracking-wider text-zinc-400 text-sm">30%: <span className="text-emerald-400 font-bold">{formatCurrency(portionIncomeAmountAsNumber * 0.30)}</span></p>
+                <p className="uppercase tracking-wider text-zinc-400 text-sm">20%: <span className="text-emerald-400 font-bold">{formatCurrency(portionIncomeAmountAsNumber * 0.20)}</span></p>
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsPortionIncomeOpen(false);
+                  }}
+                  className="rounded-lg border border-zinc-800 bg-zinc-900/30 px-4 py-2 text-xs font-medium text-zinc-400 hover:text-zinc-200 transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
