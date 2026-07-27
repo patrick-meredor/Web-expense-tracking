@@ -116,6 +116,7 @@ export function ExpenseTracker() {
     description: string;
     category: Category;
     date: string;
+    toWalletId?: number;
   }) {
     if (activeWalletId === null || !activeWallet) return;
     try {
@@ -343,6 +344,8 @@ export function ExpenseTracker() {
                     onDelete={handleDeleteTransaction}
                     onSubmit={handleAddTransaction}
                     inline={true}
+                    wallets={wallets}
+                    activeWalletId={activeWalletId}
                   />
                 )}
                 {activeTab === "upcoming" && (

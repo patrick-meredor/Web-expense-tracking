@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { CATEGORIES } from "@/lib/constants";
 import { todayISO } from "@/lib/format";
-import type { Category } from "@/lib/types";
+import type { Category, Wallet } from "@/lib/types";
 
 type TransactionFormProps = {
   onSubmit: (data: {
@@ -11,17 +11,49 @@ type TransactionFormProps = {
     description: string;
     category: Category;
     date: string;
+    toWalletId?: number;
   }) => Promise<void>;
   inline?: boolean;
+  wallets?: Wallet[];
+  activeWalletId?: number | null;
 };
 
-export function TransactionForm({ onSubmit, inline = false }: TransactionFormProps) {
+export function TransactionForm({
+  onSubmit,
+  inline = false,
+  wallets = [],
+  activeWalletId = null,
+}: TransactionFormProps) {
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<Category>("Food");
   const [date, setDate] = useState(todayISO());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [toWalletId, setToWalletId] = useState<number | undefined>(undefined);
+
+  // Derive other wallets and effective toWalletId during render
+  const otherWallets = wallets.filter((w) => w.id !== activeWalletId);
+  const effectiveToWalletId = category === "Bank Transfer"
+    ? (toWalletId && otherWallets.some((w) => w.id === toWalletId)
+        ? toWalletId
+        : otherWallets[0]?.id)
+    : undefined;
+
+  // Derive auto-description during render
+  const targetWallet = effectiveToWalletId
+    ? wallets.find((w) => w.id === effectiveToWalletId)
+    : undefined;
+  
+  const isExpense = parseFloat(amount) < 0 || amount.startsWith("-");
+  const autoDesc = category === "Bank Transfer" && targetWallet
+    ? (isExpense
+        ? `TRANSFER TO ${targetWallet.name.toUpperCase()}`
+        : `RECEIVED FROM ${targetWallet.name.toUpperCase()}`)
+    : "";
+
+  const displayedDescription = description || autoDesc;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -33,13 +65,31 @@ export function TransactionForm({ onSubmit, inline = false }: TransactionFormPro
       return;
     }
 
+    if (category === "Bank Transfer" && wallets.length > 0) {
+      if (otherWallets.length === 0) {
+        setError("You need at least two wallets to perform a bank transfer.");
+        return;
+      }
+      if (!effectiveToWalletId) {
+        setError("Please select a target wallet for the transfer.");
+        return;
+      }
+    }
+
     setSubmitting(true);
     try {
-      await onSubmit({ amount: parsed, description, category, date });
+      await onSubmit({ 
+        amount: parsed, 
+        description: displayedDescription, 
+        category, 
+        date, 
+        toWalletId: effectiveToWalletId 
+      });
       setAmount("");
       setDescription("");
       setCategory("Food");
       setDate(todayISO());
+      setToWalletId(undefined);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add transaction.");
     } finally {
@@ -80,12 +130,42 @@ export function TransactionForm({ onSubmit, inline = false }: TransactionFormPro
         </label>
       </div>
 
+      {category === "Bank Transfer" && (
+        <div className="animate-fade-in space-y-1.5">
+          {otherWallets.length > 0 ? (
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                {parseFloat(amount) >= 0 ? "Transfer From" : "Transfer To"}
+              </span>
+              <select
+                value={effectiveToWalletId ?? ""}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value);
+                  setToWalletId(Number.isNaN(val) ? undefined : val);
+                }}
+                className="w-full rounded-lg border border-zinc-800 bg-zinc-950/80 px-3.5 py-2 text-sm text-zinc-100 outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition duration-200"
+              >
+                {otherWallets.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    {w.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <div className="rounded-lg border border-amber-955 bg-amber-955/20 px-3.5 py-2.5 text-xs text-amber-400">
+              You need to create at least one more wallet account to perform a bank transfer.
+            </div>
+          )}
+        </div>
+      )}
+
       <label className="block">
         <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">Description</span>
         <input
           type="text"
           placeholder="Grocery, Coffee, Salary…"
-          value={description}
+          value={displayedDescription}
           onChange={(e) => setDescription(e.target.value)}
           className="w-full rounded-lg border border-zinc-800 bg-zinc-950/80 px-3.5 py-2 text-sm text-zinc-100 placeholder:text-zinc-650 outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition duration-200"
         />

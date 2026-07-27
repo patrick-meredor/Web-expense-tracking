@@ -101,31 +101,112 @@ export async function createNewWallet(name: string, initialBalance: number) {
 export async function addTransactionRecord(
   walletId: number,
   currentBalance: number,
-  data: { amount: number; description: string; category: Category; date: string }
+  data: { amount: number; description: string; category: Category; date: string; toWalletId?: number }
 ) {
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
 
-  // 1. Insert transaction
-  const { error: txError } = await supabase.from("transactions").insert({
-    amount: data.amount,
-    description: data.description,
-    category: data.category,
-    date: data.date,
-    wallet_id: walletId,
-  })
-  if (txError) throw new Error(txError.message)
+  if (data.category === "Bank Transfer" && data.toWalletId) {
+    // 1. Fetch target wallet to verify and get current balance
+    const { data: targetWallet, error: targetWalletError } = await supabase
+      .from("wallet")
+      .select("name, balance")
+      .eq("id", data.toWalletId)
+      .single()
 
-  // 2. Adjust balance
-  const { error: walletError } = await supabase
-    .from("wallet")
-    .update({
-      balance: currentBalance + data.amount,
-      updated_at: new Date().toISOString(),
+    if (targetWalletError || !targetWallet) {
+      throw new Error("Target wallet not found: " + (targetWalletError?.message || ""))
+    }
+
+    const targetBalance = Number(targetWallet.balance)
+
+    // 2. Fetch source wallet name
+    const { data: sourceWallet, error: sourceWalletError } = await supabase
+      .from("wallet")
+      .select("name")
+      .eq("id", walletId)
+      .single()
+
+    if (sourceWalletError || !sourceWallet) {
+      throw new Error("Source wallet not found: " + (sourceWalletError?.message || ""))
+    }
+
+    const amount = data.amount
+    const isSourceDeduction = amount < 0
+
+    // Source description: e.g., "TRANSFER TO MARIBANK"
+    const sourceDesc = data.description || (isSourceDeduction
+      ? `TRANSFER TO ${targetWallet.name.toUpperCase()}`
+      : `RECEIVED FROM ${targetWallet.name.toUpperCase()}`)
+
+    // Target description: e.g., "RECEIVED FROM BPI"
+    const targetDesc = isSourceDeduction
+      ? `RECEIVED FROM ${sourceWallet.name.toUpperCase()}`
+      : `TRANSFER TO ${sourceWallet.name.toUpperCase()}`
+
+    // Insert source transaction
+    const { error: tx1Error } = await supabase.from("transactions").insert({
+      amount: amount,
+      description: sourceDesc,
+      category: data.category,
+      date: data.date,
+      wallet_id: walletId,
     })
-    .eq("id", walletId)
+    if (tx1Error) throw new Error(tx1Error.message)
 
-  if (walletError) throw new Error(walletError.message)
+    // Insert target transaction
+    const { error: tx2Error } = await supabase.from("transactions").insert({
+      amount: -amount,
+      description: targetDesc,
+      category: data.category,
+      date: data.date,
+      wallet_id: data.toWalletId,
+    })
+    if (tx2Error) throw new Error(tx2Error.message)
+
+    // Update source wallet balance
+    const { error: wallet1Error } = await supabase
+      .from("wallet")
+      .update({
+        balance: currentBalance + amount,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", walletId)
+    if (wallet1Error) throw new Error(wallet1Error.message)
+
+    // Update target wallet balance
+    const { error: wallet2Error } = await supabase
+      .from("wallet")
+      .update({
+        balance: targetBalance - amount,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", data.toWalletId)
+    if (wallet2Error) throw new Error(wallet2Error.message)
+
+  } else {
+    // Normal single transaction insertion
+    // 1. Insert transaction
+    const { error: txError } = await supabase.from("transactions").insert({
+      amount: data.amount,
+      description: data.description,
+      category: data.category,
+      date: data.date,
+      wallet_id: walletId,
+    })
+    if (txError) throw new Error(txError.message)
+
+    // 2. Adjust balance
+    const { error: walletError } = await supabase
+      .from("wallet")
+      .update({
+        balance: currentBalance + data.amount,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", walletId)
+
+    if (walletError) throw new Error(walletError.message)
+  }
 }
 
 /**
@@ -134,6 +215,57 @@ export async function addTransactionRecord(
 export async function deleteTransactionRecord(transaction: Transaction, currentWalletBalance: number) {
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
+
+  // If deleting a Bank Transfer, attempt to locate and delete the counterpart record.
+  if (transaction.category === "Bank Transfer") {
+    const { data: wallets } = await supabase.from("wallet").select("*")
+    const sourceWallet = wallets?.find((w) => w.id === transaction.wallet_id)
+
+    if (sourceWallet && wallets) {
+      let targetWallet: Wallet | null = null
+      let targetDescPattern = ""
+
+      const desc = transaction.description.toUpperCase()
+      if (desc.startsWith("TRANSFER TO ")) {
+        const targetName = transaction.description.substring("TRANSFER TO ".length).trim()
+        targetWallet = wallets.find((w) => w.name.toUpperCase() === targetName.toUpperCase())
+        targetDescPattern = `RECEIVED FROM ${sourceWallet.name.toUpperCase()}`
+      } else if (desc.startsWith("RECEIVED FROM ")) {
+        const targetName = transaction.description.substring("RECEIVED FROM ".length).trim()
+        targetWallet = wallets.find((w) => w.name.toUpperCase() === targetName.toUpperCase())
+        targetDescPattern = `TRANSFER TO ${sourceWallet.name.toUpperCase()}`
+      }
+
+      if (targetWallet) {
+        // Look up counterpart transaction
+        const { data: counterpartTx } = await supabase
+          .from("transactions")
+          .select("*")
+          .eq("wallet_id", targetWallet.id)
+          .eq("amount", -transaction.amount)
+          .eq("date", transaction.date)
+          .eq("description", targetDescPattern)
+          .limit(1)
+
+        if (counterpartTx && counterpartTx.length > 0) {
+          const counterpart = counterpartTx[0]
+
+          // Delete counterpart transaction
+          await supabase.from("transactions").delete().eq("id", counterpart.id)
+
+          // Restore balance on target wallet
+          const newTargetBalance = Number(targetWallet.balance) - Number(counterpart.amount)
+          await supabase
+            .from("wallet")
+            .update({
+              balance: newTargetBalance,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", targetWallet.id)
+        }
+      }
+    }
+  }
 
   // 1. Delete record
   const { error: deleteError } = await supabase

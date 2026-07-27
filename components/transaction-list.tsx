@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { CATEGORIES, CATEGORY_CONFIGS, CATEGORY_COLORS } from "@/lib/constants";
 import { formatCurrency, formatDateTime } from "@/lib/format";
-import type { Category, Transaction } from "@/lib/types";
+import type { Category, Transaction, Wallet } from "@/lib/types";
 import { TransactionForm } from "@/components/transaction-form";
 import { X, Search, Trash2, List } from "lucide-react";
 
@@ -16,8 +16,11 @@ type TransactionListProps = {
     description: string;
     category: Category;
     date: string;
+    toWalletId?: number;
   }) => Promise<void>;
   inline?: boolean;
+  wallets?: Wallet[];
+  activeWalletId?: number | null;
 };
 
 const ITEMS_PER_PAGE = 3;
@@ -31,6 +34,8 @@ export function TransactionList({
   onDelete,
   onSubmit,
   inline = false,
+  wallets = [],
+  activeWalletId = null,
 }: TransactionListProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState<Category | "All">("All");
@@ -283,6 +288,8 @@ export function TransactionList({
                   setIsAddModalOpen(false);
                 }}
                 inline={true}
+                wallets={wallets}
+                activeWalletId={activeWalletId}
               />
             </div>
           </div>
