@@ -100,11 +100,23 @@ export async function createNewWallet(name: string, initialBalance: number) {
  */
 export async function addTransactionRecord(
   walletId: number,
-  currentBalance: number,
   data: { amount: number; description: string; category: Category; date: string; toWalletId?: number }
 ) {
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
+
+  // Fetch the current balance and name of the source wallet from the database
+  const { data: sourceWallet, error: sourceWalletError } = await supabase
+    .from("wallet")
+    .select("name, balance")
+    .eq("id", walletId)
+    .single()
+
+  if (sourceWalletError || !sourceWallet) {
+    throw new Error("Source wallet not found: " + (sourceWalletError?.message || ""))
+  }
+
+  const currentBalance = Number(sourceWallet.balance)
 
   if (data.category === "Bank Transfer" && data.toWalletId) {
     // 1. Fetch target wallet to verify and get current balance
@@ -119,18 +131,6 @@ export async function addTransactionRecord(
     }
 
     const targetBalance = Number(targetWallet.balance)
-
-    // 2. Fetch source wallet name
-    const { data: sourceWallet, error: sourceWalletError } = await supabase
-      .from("wallet")
-      .select("name")
-      .eq("id", walletId)
-      .single()
-
-    if (sourceWalletError || !sourceWallet) {
-      throw new Error("Source wallet not found: " + (sourceWalletError?.message || ""))
-    }
-
     const amount = data.amount
     const isSourceDeduction = amount < 0
 
@@ -212,9 +212,22 @@ export async function addTransactionRecord(
 /**
  * Deletes a ledger record and restores balance state properties.
  */
-export async function deleteTransactionRecord(transaction: Transaction, currentWalletBalance: number) {
+export async function deleteTransactionRecord(transaction: Transaction) {
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
+
+  // Fetch the wallet of the transaction to get its current balance
+  const { data: wallet, error: walletFetchError } = await supabase
+    .from("wallet")
+    .select("balance")
+    .eq("id", transaction.wallet_id)
+    .single()
+
+  if (walletFetchError || !wallet) {
+    throw new Error("Wallet associated with the transaction was not found.")
+  }
+
+  const currentWalletBalance = Number(wallet.balance)
 
   // If deleting a Bank Transfer, attempt to locate and delete the counterpart record.
   if (transaction.category === "Bank Transfer") {
@@ -327,11 +340,23 @@ export async function deleteUpcomingExpenseRecord(id: string) {
  */
 export async function payUpcomingExpenseRecord(
   upcomingExpenseId: string,
-  walletId: number,
-  currentWalletBalance: number
+  walletId: number
 ) {
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
+
+  // Fetch the wallet to get the current balance
+  const { data: wallet, error: walletFetchError } = await supabase
+    .from("wallet")
+    .select("balance")
+    .eq("id", walletId)
+    .single()
+
+  if (walletFetchError || !wallet) {
+    throw new Error("Wallet not found.")
+  }
+
+  const currentWalletBalance = Number(wallet.balance)
 
   // 1. Fetch upcoming expense details
   const { data: ueData, error: fetchError } = await supabase

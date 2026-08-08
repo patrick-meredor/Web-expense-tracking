@@ -1,4 +1,4 @@
-import { LogOut, CreditCard, TrendingUp, Calendar, User, ChevronDown } from "lucide-react";
+import { LogOut, CreditCard, TrendingUp, Calendar,} from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { formatCurrency } from "@/lib/format";
 
@@ -37,7 +37,7 @@ export default function Header({
         {/* Center: Quick stats overview cards (visible on md screens and larger) */}
         <div className="hidden md:flex items-center gap-4 flex-1 justify-center px-8">
           {/* Card 1: Balance */}
-          <div className="rounded-xl border border-zinc-900 bg-zinc-950 px-4 py-2 flex items-center gap-3 min-w-[160px] h-[52px]">
+          <div className="rounded-xl border border-zinc-900 bg-zinc-950 px-4 py-2 flex items-center gap-3 min-w-40 h-13">
             <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0">
               <CreditCard className="h-4.5 w-4.5" />
             </div>

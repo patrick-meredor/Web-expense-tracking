@@ -32,6 +32,6 @@ export function formatDateTime(dateStr: string, createdAtStr: string): string {
       });
       return `${formattedDate} • ${timeStr}`;
     }
-  } catch (e) {}
+  } catch {}
   return formattedDate;
 }

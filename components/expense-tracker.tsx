@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { TransactionForm } from "@/components/transaction-form";
 import { TransactionList } from "@/components/transaction-list";
 import { UpcomingExpenses } from "@/components/upcoming-expenses";
 import { createClient } from "@/lib/supabase/client";
@@ -120,7 +119,7 @@ export function ExpenseTracker() {
   }) {
     if (activeWalletId === null || !activeWallet) return;
     try {
-      await addTransactionRecord(activeWalletId, activeWallet.balance, data);
+      await addTransactionRecord(activeWalletId, data);
       await loadData();
     } catch (err) {
       setError(
@@ -133,11 +132,8 @@ export function ExpenseTracker() {
     const targetTx = transactions.find((t) => t.id === id);
     if (!targetTx) return;
 
-    const linkedWallet = wallets.find((w) => w.id === targetTx.wallet_id);
-    const walletBalance = linkedWallet?.balance ?? 0;
-
     try {
-      await deleteTransactionRecord(targetTx, walletBalance);
+      await deleteTransactionRecord(targetTx);
       await loadData();
     } catch (err) {
       setError(
@@ -189,7 +185,7 @@ export function ExpenseTracker() {
   async function handlePayUpcomingExpense(id: string) {
     if (activeWalletId === null || !activeWallet) return;
     try {
-      await payUpcomingExpenseRecord(id, activeWalletId, activeWallet.balance);
+      await payUpcomingExpenseRecord(id, activeWalletId);
       await loadData();
     } catch (err) {
       setError(

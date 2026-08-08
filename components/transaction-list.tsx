@@ -33,7 +33,6 @@ export function TransactionList({
   loading,
   onDelete,
   onSubmit,
-  inline = false,
   wallets = [],
   activeWalletId = null,
 }: TransactionListProps) {
@@ -70,7 +69,7 @@ export function TransactionList({
   }
 
   return (
-    <div className="relative flex flex-col justify-between min-h-[380px] pb-5">
+    <div className="relative flex flex-col justify-between min-h-95 pb-5">
       <div className="space-y-4 shrink-0">
         
         {/* Search Bar & Entries Count */}
