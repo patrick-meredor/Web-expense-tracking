@@ -83,7 +83,7 @@ export default function Sidebar({
               >
                 {wallet.name}
                 {wallet.id === activeWalletId && (
-                  <span className="text-emerald-400 text-[10px] font-bold">Active</span>
+                  <span className="p-1 rounded-full bg-emerald-400"></span>
                 )}
               </DropdownMenuItem>
             ))}
