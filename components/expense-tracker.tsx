@@ -24,6 +24,8 @@ import {
   addUpcomingExpenseRecord,
   deleteUpcomingExpenseRecord,
   payUpcomingExpenseRecord,
+  renameActiveWallet,
+  createSubWallet,
 } from "@/app/expense-tracker/actions";
 
 export function ExpenseTracker() {
@@ -45,10 +47,27 @@ export function ExpenseTracker() {
   const [isAdjustBalanceOpen, setIsAdjustBalanceOpen] = useState(false);
   const [isCreateWalletOpen, setIsCreateWalletOpen] = useState(false);
   const [isPortionIncomeOpen, setIsPortionIncomeOpen] = useState(false);
+  const [isRenameWalletOpen, setIsRenameWalletOpen] = useState(false);
   const [adjustBalanceValue, setAdjustBalanceValue] = useState("");
   const [portionIncomeAmount, setPortionIncomeAmount] = useState("");
   const [newWalletName, setNewWalletName] = useState("");
   const [newWalletBalance, setNewWalletBalance] = useState("");
+  const [renameWalletName, setRenameWalletName] = useState("");
+  const [isCreateSubWalletOpen, setIsCreateSubWalletOpen] = useState(false);
+  const [newSubWalletName, setNewSubWalletName] = useState("");
+  const [newSubWalletBalance, setNewSubWalletBalance] = useState("");
+
+  const activeWallet = wallets.find((w) => w.id === activeWalletId) || null;
+
+  const handleSetIsRenameWalletOpen = useCallback(
+    (open: boolean) => {
+      setIsRenameWalletOpen(open);
+      if (open && activeWallet) {
+        setRenameWalletName(activeWallet.name);
+      }
+    },
+    [activeWallet],
+  );
 
   const portionIncomeAmountAsNumber = parseFloat(portionIncomeAmount) || 0;
 
@@ -152,6 +171,31 @@ export function ExpenseTracker() {
     }
   }
 
+  async function handleCreateSubWallet(name: string, initialBalance: number) {
+    if (activeWalletId === null) return;
+    try {
+      const newSub = await createSubWallet(activeWalletId, name, initialBalance);
+      await loadData();
+      if (newSub) setActiveWalletId(newSub.id);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to create sub wallet.",
+      );
+    }
+  }
+
+  async function handleRenameWallet(newName: string) {
+    if (activeWalletId === null) return;
+    try {
+      await renameActiveWallet(activeWalletId, newName);
+      await loadData();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to rename wallet.",
+      );
+    }
+  }
+
   async function handleAddUpcomingExpense(data: {
     name: string;
     details: string;
@@ -194,7 +238,6 @@ export function ExpenseTracker() {
     }
   }
 
-  const activeWallet = wallets.find((w) => w.id === activeWalletId) || null;
   const activeWalletTransactions =
     activeWalletId !== null
       ? transactions.filter((t) => t.wallet_id === activeWalletId)
@@ -264,6 +307,8 @@ export function ExpenseTracker() {
               setIsCreateWalletOpen={setIsCreateWalletOpen}
               setIsAdjustBalanceOpen={setIsAdjustBalanceOpen}
               setIsPortionIncomeOpen={setIsPortionIncomeOpen}
+              setIsRenameWalletOpen={handleSetIsRenameWalletOpen}
+              setIsCreateSubWalletOpen={setIsCreateSubWalletOpen}
               selectedDate={selectedDate}
               setSelectedDate={setSelectedDate}
               income={totalIncome}
@@ -274,7 +319,7 @@ export function ExpenseTracker() {
 
           {/* Right Column: Ledger / Upcoming Tab (9 cols) */}
           <div className="lg:col-span-9">
-            <div className="rounded-2xl border border-zinc-900 bg-zinc-950/40 p-6 flex flex-col gap-6 relative min-h-[440px]">
+            <div className="rounded-2xl border border-zinc-900 bg-zinc-950/40 p-6 flex flex-col gap-6 relative min-h-110">
               {/* Tabs Header */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-900 pb-4 shrink-0">
                 <div className="flex flex-wrap items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-zinc-450 select-none">
@@ -489,6 +534,74 @@ export function ExpenseTracker() {
           </div>
         </div>
       )}
+      {isCreateSubWalletOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl border border-zinc-900 bg-zinc-950 p-6 shadow-2xl">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-emerald-455">
+              Add Sub Wallet
+            </h3>
+            <p className="mt-1 text-xs text-zinc-505">
+              Create a sub-wallet under {activeWallet?.name || "wallet"}.
+            </p>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!newSubWalletName.trim()) return;
+                const parsedBalance = parseFloat(newSubWalletBalance) || 0;
+                try {
+                  await handleCreateSubWallet(newSubWalletName.trim(), parsedBalance);
+                  setNewSubWalletName("");
+                  setNewSubWalletBalance("");
+                  setIsCreateSubWalletOpen(false);
+                } catch (err) {
+                  console.error("Error creating sub wallet:", err);
+                }
+              }}
+              className="mt-4 space-y-4"
+            >
+              <div className="space-y-3">
+                <input
+                  type="text"
+                  placeholder="Sub Wallet Name (e.g. Savings)"
+                  required
+                  value={newSubWalletName}
+                  onChange={(e) => setNewSubWalletName(e.target.value)}
+                  className="w-full rounded-lg border border-zinc-800 bg-zinc-900/40 px-3.5 py-2 text-sm text-zinc-100 placeholder:text-zinc-650 focus:border-emerald-500/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+                  autoFocus
+                />
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="Initial Balance"
+                  value={newSubWalletBalance}
+                  onChange={(e) => setNewSubWalletBalance(e.target.value)}
+                  className="w-full rounded-lg border border-zinc-800 bg-zinc-900/40 px-3.5 py-2 text-sm text-zinc-100 placeholder:text-zinc-650 focus:border-emerald-500/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCreateSubWalletOpen(false);
+                    setNewSubWalletName("");
+                    setNewSubWalletBalance("");
+                  }}
+                  className="rounded-lg border border-zinc-800 bg-zinc-900/30 px-4 py-2 text-xs font-medium text-zinc-400 hover:text-zinc-200 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-lg bg-emerald-450 hover:bg-emerald-555 px-4 py-2 text-xs font-bold text-zinc-955 transition cursor-pointer"
+                >
+                  Create
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
       {isPortionIncomeOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="w-full max-w-md rounded-2xl border border-zinc-900 bg-zinc-950 p-6 shadow-2xl">
@@ -523,6 +636,58 @@ export function ExpenseTracker() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+      {isRenameWalletOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl border border-zinc-900 bg-zinc-950 p-6 shadow-2xl">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-emerald-455">
+              Rename the wallet
+            </h3>
+            <p className="mt-1 text-xs text-zinc-505">
+              What name sounds good to you?
+            </p>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!renameWalletName.trim()) return;
+                try {
+                  await handleRenameWallet(renameWalletName.trim());
+                  setIsRenameWalletOpen(false);
+                } catch (err) {
+                  console.error("Error renaming wallet:", err);
+                }
+              }}
+              className="mt-4 space-y-4"
+            >
+              <input
+                type="text"
+                placeholder="Wallet Name"
+                required
+                value={renameWalletName}
+                onChange={(e) => setRenameWalletName(e.target.value)}
+                className="w-full rounded-lg border border-zinc-800 bg-zinc-900/40 px-3.5 py-2 text-sm text-zinc-100 placeholder:text-zinc-650 focus:border-emerald-500/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+                autoFocus
+              />
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsRenameWalletOpen(false);
+                  }}
+                  className="rounded-lg border border-zinc-800 bg-zinc-900/30 px-4 py-2 text-xs font-medium text-zinc-400 hover:text-zinc-200 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-lg bg-emerald-450 hover:bg-emerald-555 px-4 py-2 text-xs font-bold text-zinc-955 transition cursor-pointer"
+                >
+                  Rename
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

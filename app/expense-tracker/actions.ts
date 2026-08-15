@@ -1,98 +1,119 @@
-'use server'
+"use server";
 
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import type { Category, Transaction, Wallet, UpcomingExpense } from "@/lib/types";
-
+import type {
+  Category,
+  Transaction,
+  Wallet,
+  UpcomingExpense,
+} from "@/lib/types";
 
 export async function getTrackerData() {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
 
-  const [walletResult, txResult, upcomingResult, userResult] = await Promise.all([
-    supabase.from("wallet").select("*").order("name"),
-    supabase
-      .from("transactions")
-      .select("*")
-      .order("date", { ascending: false })
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("upcoming_expenses")
-      .select("*")
-      .order("date", { ascending: true }),
-    supabase.auth.getUser(),
-  ])
+  const [walletResult, txResult, upcomingResult, userResult] =
+    await Promise.all([
+      supabase.from("wallet").select("*").order("name"),
+      supabase
+        .from("transactions")
+        .select("*")
+        .order("date", { ascending: false })
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("upcoming_expenses")
+        .select("*")
+        .order("date", { ascending: true }),
+      supabase.auth.getUser(),
+    ]);
 
   if (walletResult.error) {
-    const isMissingTable = walletResult.error.message.includes("does not exist")
-    throw new Error(isMissingTable ? "Database tables not found." : walletResult.error.message)
+    const isMissingTable =
+      walletResult.error.message.includes("does not exist");
+    throw new Error(
+      isMissingTable
+        ? "Database tables not found."
+        : walletResult.error.message,
+    );
   }
-  if (txResult.error) throw new Error(txResult.error.message)
+  if (txResult.error) throw new Error(txResult.error.message);
 
-  let upcomingExpenses: UpcomingExpense[] = []
+  let upcomingExpenses: UpcomingExpense[] = [];
   if (upcomingResult.error) {
     console.error("Upcoming expenses error:", upcomingResult.error.message);
     if (upcomingResult.error.message.includes("does not exist")) {
-      throw new Error("Table 'upcoming_expenses' does not exist. Please run the SQL migration script in your Supabase SQL editor.")
+      throw new Error(
+        "Table 'upcoming_expenses' does not exist. Please run the SQL migration script in your Supabase SQL editor.",
+      );
     } else {
-      throw new Error(upcomingResult.error.message)
+      throw new Error(upcomingResult.error.message);
     }
   } else {
-    upcomingExpenses = (upcomingResult.data || []).map((ue: UpcomingExpense) => ({
-      ...ue,
-      amount: Number(ue.amount),
-    }))
+    upcomingExpenses = (upcomingResult.data || []).map(
+      (ue: UpcomingExpense) => ({
+        ...ue,
+        amount: Number(ue.amount),
+      }),
+    );
   }
 
   const wallets: Wallet[] = (walletResult.data || []).map((w: Wallet) => ({
     ...w,
     balance: Number(w.balance),
-  }))
+  }));
 
-  const transactions: Transaction[] = (txResult.data || []).map((tx: Transaction) => ({
-    ...tx,
-    amount: Number(tx.amount),
-  }))
+  const transactions: Transaction[] = (txResult.data || []).map(
+    (tx: Transaction) => ({
+      ...tx,
+      amount: Number(tx.amount),
+    }),
+  );
 
   return {
     wallets,
     transactions,
     upcomingExpenses,
     userEmail: userResult.data?.user?.email ?? null,
-  }
+  };
 }
 
 /**
  * Adjusts an existing wallet's manual balance statement.
  */
-export async function adjustWalletBalance(walletId: number, newBalance: number) {
-  const cookieStore = await cookies()
-  const supabase = createClient(cookieStore)
+export async function adjustWalletBalance(
+  walletId: number,
+  newBalance: number,
+) {
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
   const { error } = await supabase
     .from("wallet")
     .update({ balance: newBalance, updated_at: new Date().toISOString() })
-    .eq("id", walletId)
+    .eq("id", walletId);
 
-  if (error) throw new Error(error.message)
+  if (error) throw new Error(error.message);
 }
 
 /**
  * Creates a brand new wallet profile.
  */
 export async function createNewWallet(name: string, initialBalance: number) {
-  const cookieStore = await cookies()
-  const supabase = createClient(cookieStore)
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  const user_id = user?.id
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const user_id = user?.id;
 
   const { data, error } = await supabase
     .from("wallet")
     .insert({ name, balance: initialBalance, ...(user_id ? { user_id } : {}) })
-    .select()
+    .select();
 
-  if (error) throw new Error(error.message)
-  return data?.[0] || null
+  if (error) throw new Error(error.message);
+  return data?.[0] || null;
 }
 
 /**
@@ -100,23 +121,31 @@ export async function createNewWallet(name: string, initialBalance: number) {
  */
 export async function addTransactionRecord(
   walletId: number,
-  data: { amount: number; description: string; category: Category; date: string; toWalletId?: number }
+  data: {
+    amount: number;
+    description: string;
+    category: Category;
+    date: string;
+    toWalletId?: number;
+  },
 ) {
-  const cookieStore = await cookies()
-  const supabase = createClient(cookieStore)
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
 
   // Fetch the current balance and name of the source wallet from the database
   const { data: sourceWallet, error: sourceWalletError } = await supabase
     .from("wallet")
     .select("name, balance")
     .eq("id", walletId)
-    .single()
+    .single();
 
   if (sourceWalletError || !sourceWallet) {
-    throw new Error("Source wallet not found: " + (sourceWalletError?.message || ""))
+    throw new Error(
+      "Source wallet not found: " + (sourceWalletError?.message || ""),
+    );
   }
 
-  const currentBalance = Number(sourceWallet.balance)
+  const currentBalance = Number(sourceWallet.balance);
 
   if (data.category === "Bank Transfer" && data.toWalletId) {
     // 1. Fetch target wallet to verify and get current balance
@@ -124,25 +153,29 @@ export async function addTransactionRecord(
       .from("wallet")
       .select("name, balance")
       .eq("id", data.toWalletId)
-      .single()
+      .single();
 
     if (targetWalletError || !targetWallet) {
-      throw new Error("Target wallet not found: " + (targetWalletError?.message || ""))
+      throw new Error(
+        "Target wallet not found: " + (targetWalletError?.message || ""),
+      );
     }
 
-    const targetBalance = Number(targetWallet.balance)
-    const amount = data.amount
-    const isSourceDeduction = amount < 0
+    const targetBalance = Number(targetWallet.balance);
+    const amount = data.amount;
+    const isSourceDeduction = amount < 0;
 
     // Source description: e.g., "TRANSFER TO MARIBANK"
-    const sourceDesc = data.description || (isSourceDeduction
-      ? `TRANSFER TO ${targetWallet.name.toUpperCase()}`
-      : `RECEIVED FROM ${targetWallet.name.toUpperCase()}`)
+    const sourceDesc =
+      data.description ||
+      (isSourceDeduction
+        ? `TRANSFER TO ${targetWallet.name.toUpperCase()}`
+        : `RECEIVED FROM ${targetWallet.name.toUpperCase()}`);
 
     // Target description: e.g., "RECEIVED FROM BPI"
     const targetDesc = isSourceDeduction
       ? `RECEIVED FROM ${sourceWallet.name.toUpperCase()}`
-      : `TRANSFER TO ${sourceWallet.name.toUpperCase()}`
+      : `TRANSFER TO ${sourceWallet.name.toUpperCase()}`;
 
     // Insert source transaction
     const { error: tx1Error } = await supabase.from("transactions").insert({
@@ -151,8 +184,8 @@ export async function addTransactionRecord(
       category: data.category,
       date: data.date,
       wallet_id: walletId,
-    })
-    if (tx1Error) throw new Error(tx1Error.message)
+    });
+    if (tx1Error) throw new Error(tx1Error.message);
 
     // Insert target transaction
     const { error: tx2Error } = await supabase.from("transactions").insert({
@@ -161,8 +194,8 @@ export async function addTransactionRecord(
       category: data.category,
       date: data.date,
       wallet_id: data.toWalletId,
-    })
-    if (tx2Error) throw new Error(tx2Error.message)
+    });
+    if (tx2Error) throw new Error(tx2Error.message);
 
     // Update source wallet balance
     const { error: wallet1Error } = await supabase
@@ -171,8 +204,8 @@ export async function addTransactionRecord(
         balance: currentBalance + amount,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", walletId)
-    if (wallet1Error) throw new Error(wallet1Error.message)
+      .eq("id", walletId);
+    if (wallet1Error) throw new Error(wallet1Error.message);
 
     // Update target wallet balance
     const { error: wallet2Error } = await supabase
@@ -181,9 +214,8 @@ export async function addTransactionRecord(
         balance: targetBalance - amount,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", data.toWalletId)
-    if (wallet2Error) throw new Error(wallet2Error.message)
-
+      .eq("id", data.toWalletId);
+    if (wallet2Error) throw new Error(wallet2Error.message);
   } else {
     // Normal single transaction insertion
     // 1. Insert transaction
@@ -193,8 +225,8 @@ export async function addTransactionRecord(
       category: data.category,
       date: data.date,
       wallet_id: walletId,
-    })
-    if (txError) throw new Error(txError.message)
+    });
+    if (txError) throw new Error(txError.message);
 
     // 2. Adjust balance
     const { error: walletError } = await supabase
@@ -203,9 +235,9 @@ export async function addTransactionRecord(
         balance: currentBalance + data.amount,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", walletId)
+      .eq("id", walletId);
 
-    if (walletError) throw new Error(walletError.message)
+    if (walletError) throw new Error(walletError.message);
   }
 }
 
@@ -213,40 +245,48 @@ export async function addTransactionRecord(
  * Deletes a ledger record and restores balance state properties.
  */
 export async function deleteTransactionRecord(transaction: Transaction) {
-  const cookieStore = await cookies()
-  const supabase = createClient(cookieStore)
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
 
   // Fetch the wallet of the transaction to get its current balance
   const { data: wallet, error: walletFetchError } = await supabase
     .from("wallet")
     .select("balance")
     .eq("id", transaction.wallet_id)
-    .single()
+    .single();
 
   if (walletFetchError || !wallet) {
-    throw new Error("Wallet associated with the transaction was not found.")
+    throw new Error("Wallet associated with the transaction was not found.");
   }
 
-  const currentWalletBalance = Number(wallet.balance)
+  const currentWalletBalance = Number(wallet.balance);
 
   // If deleting a Bank Transfer, attempt to locate and delete the counterpart record.
   if (transaction.category === "Bank Transfer") {
-    const { data: wallets } = await supabase.from("wallet").select("*")
-    const sourceWallet = wallets?.find((w) => w.id === transaction.wallet_id)
+    const { data: wallets } = await supabase.from("wallet").select("*");
+    const sourceWallet = wallets?.find((w) => w.id === transaction.wallet_id);
 
     if (sourceWallet && wallets) {
-      let targetWallet: Wallet | null = null
-      let targetDescPattern = ""
+      let targetWallet: Wallet | null = null;
+      let targetDescPattern = "";
 
-      const desc = transaction.description.toUpperCase()
+      const desc = transaction.description.toUpperCase();
       if (desc.startsWith("TRANSFER TO ")) {
-        const targetName = transaction.description.substring("TRANSFER TO ".length).trim()
-        targetWallet = wallets.find((w) => w.name.toUpperCase() === targetName.toUpperCase())
-        targetDescPattern = `RECEIVED FROM ${sourceWallet.name.toUpperCase()}`
+        const targetName = transaction.description
+          .substring("TRANSFER TO ".length)
+          .trim();
+        targetWallet = wallets.find(
+          (w) => w.name.toUpperCase() === targetName.toUpperCase(),
+        );
+        targetDescPattern = `RECEIVED FROM ${sourceWallet.name.toUpperCase()}`;
       } else if (desc.startsWith("RECEIVED FROM ")) {
-        const targetName = transaction.description.substring("RECEIVED FROM ".length).trim()
-        targetWallet = wallets.find((w) => w.name.toUpperCase() === targetName.toUpperCase())
-        targetDescPattern = `TRANSFER TO ${sourceWallet.name.toUpperCase()}`
+        const targetName = transaction.description
+          .substring("RECEIVED FROM ".length)
+          .trim();
+        targetWallet = wallets.find(
+          (w) => w.name.toUpperCase() === targetName.toUpperCase(),
+        );
+        targetDescPattern = `TRANSFER TO ${sourceWallet.name.toUpperCase()}`;
       }
 
       if (targetWallet) {
@@ -258,23 +298,24 @@ export async function deleteTransactionRecord(transaction: Transaction) {
           .eq("amount", -transaction.amount)
           .eq("date", transaction.date)
           .eq("description", targetDescPattern)
-          .limit(1)
+          .limit(1);
 
         if (counterpartTx && counterpartTx.length > 0) {
-          const counterpart = counterpartTx[0]
+          const counterpart = counterpartTx[0];
 
           // Delete counterpart transaction
-          await supabase.from("transactions").delete().eq("id", counterpart.id)
+          await supabase.from("transactions").delete().eq("id", counterpart.id);
 
           // Restore balance on target wallet
-          const newTargetBalance = Number(targetWallet.balance) - Number(counterpart.amount)
+          const newTargetBalance =
+            Number(targetWallet.balance) - Number(counterpart.amount);
           await supabase
             .from("wallet")
             .update({
               balance: newTargetBalance,
               updated_at: new Date().toISOString(),
             })
-            .eq("id", targetWallet.id)
+            .eq("id", targetWallet.id);
         }
       }
     }
@@ -284,8 +325,8 @@ export async function deleteTransactionRecord(transaction: Transaction) {
   const { error: deleteError } = await supabase
     .from("transactions")
     .delete()
-    .eq("id", transaction.id)
-  if (deleteError) throw new Error(deleteError.message)
+    .eq("id", transaction.id);
+  if (deleteError) throw new Error(deleteError.message);
 
   // 2. Reverse balance adjustment change
   const { error: walletError } = await supabase
@@ -294,9 +335,9 @@ export async function deleteTransactionRecord(transaction: Transaction) {
       balance: currentWalletBalance - transaction.amount,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", transaction.wallet_id)
+    .eq("id", transaction.wallet_id);
 
-  if (walletError) throw new Error(walletError.message)
+  if (walletError) throw new Error(walletError.message);
 }
 
 /**
@@ -304,10 +345,10 @@ export async function deleteTransactionRecord(transaction: Transaction) {
  */
 export async function addUpcomingExpenseRecord(
   walletId: number,
-  data: { name: string; details: string; amount: number; date: string | null }
+  data: { name: string; details: string; amount: number; date: string | null },
 ) {
-  const cookieStore = await cookies()
-  const supabase = createClient(cookieStore)
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
 
   const { error } = await supabase.from("upcoming_expenses").insert({
     name: data.name,
@@ -315,24 +356,24 @@ export async function addUpcomingExpenseRecord(
     amount: data.amount,
     date: data.date || null,
     wallet_id: walletId,
-  })
+  });
 
-  if (error) throw new Error(error.message)
+  if (error) throw new Error(error.message);
 }
 
 /**
  * Deletes an upcoming expense.
  */
 export async function deleteUpcomingExpenseRecord(id: string) {
-  const cookieStore = await cookies()
-  const supabase = createClient(cookieStore)
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
 
   const { error } = await supabase
     .from("upcoming_expenses")
     .delete()
-    .eq("id", id)
+    .eq("id", id);
 
-  if (error) throw new Error(error.message)
+  if (error) throw new Error(error.message);
 }
 
 /**
@@ -340,41 +381,43 @@ export async function deleteUpcomingExpenseRecord(id: string) {
  */
 export async function payUpcomingExpenseRecord(
   upcomingExpenseId: string,
-  walletId: number
+  walletId: number,
 ) {
-  const cookieStore = await cookies()
-  const supabase = createClient(cookieStore)
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
 
   // Fetch the wallet to get the current balance
   const { data: wallet, error: walletFetchError } = await supabase
     .from("wallet")
     .select("balance")
     .eq("id", walletId)
-    .single()
+    .single();
 
   if (walletFetchError || !wallet) {
-    throw new Error("Wallet not found.")
+    throw new Error("Wallet not found.");
   }
 
-  const currentWalletBalance = Number(wallet.balance)
+  const currentWalletBalance = Number(wallet.balance);
 
   // 1. Fetch upcoming expense details
   const { data: ueData, error: fetchError } = await supabase
     .from("upcoming_expenses")
     .select("*")
     .eq("id", upcomingExpenseId)
-    .single()
+    .single();
 
-  if (fetchError) throw new Error(fetchError.message)
-  if (!ueData) throw new Error("Upcoming expense not found.")
+  if (fetchError) throw new Error(fetchError.message);
+  if (!ueData) throw new Error("Upcoming expense not found.");
 
-  const amount = Number(ueData.amount)
+  const amount = Number(ueData.amount);
 
   // 2. Insert into transactions (negative amount since it's an expense)
   const detailsStr = ueData.details || "";
   let category: Category = "Bills";
   let displayDetails = detailsStr;
-  const match = detailsStr.match(/^\[(Food|Bills|Transport|Income|Other|Bank Transfer|Shopping|Travel|Education|Entertainment|Health)\]\s*(.*)/);
+  const match = detailsStr.match(
+    /^\[(Food|Bills|Transport|Income|Other|Bank Transfer|Shopping|Travel|Education|Entertainment|Health)\]\s*(.*)/,
+  );
   if (match) {
     category = match[1] as Category;
     displayDetails = match[2];
@@ -386,8 +429,8 @@ export async function payUpcomingExpenseRecord(
     category: category,
     date: new Date().toISOString().slice(0, 10), // paid today
     wallet_id: walletId,
-  })
-  if (txError) throw new Error(txError.message)
+  });
+  if (txError) throw new Error(txError.message);
 
   // 3. Adjust wallet balance
   const { error: walletError } = await supabase
@@ -396,13 +439,61 @@ export async function payUpcomingExpenseRecord(
       balance: currentWalletBalance - amount,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", walletId)
-  if (walletError) throw new Error(walletError.message)
+    .eq("id", walletId);
+  if (walletError) throw new Error(walletError.message);
 
   // 4. Delete upcoming expense
   const { error: deleteError } = await supabase
     .from("upcoming_expenses")
     .delete()
-    .eq("id", upcomingExpenseId)
-  if (deleteError) throw new Error(deleteError.message)
+    .eq("id", upcomingExpenseId);
+  if (deleteError) throw new Error(deleteError.message);
 }
+
+// Rename Active Wallet
+
+export async function renameActiveWallet(
+  walletId: number,
+  newWalletName: string,
+) {
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+
+  const { error } = await supabase
+    .from("wallet")
+    .update({ name: newWalletName, updated_at: new Date().toISOString() })
+    .eq("id", walletId);
+    
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * Creates a sub-wallet under an existing parent wallet.
+ */
+export async function createSubWallet(
+  parentWalletId: number,
+  name: string,
+  initialBalance: number,
+) {
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const user_id = user?.id;
+
+  const { data, error } = await supabase
+    .from("wallet")
+    .insert({
+      name,
+      balance: initialBalance,
+      parent_id: parentWalletId,
+      ...(user_id ? { user_id } : {}),
+    })
+    .select();
+
+  if (error) throw new Error(error.message);
+  return data?.[0] || null;
+}
+
