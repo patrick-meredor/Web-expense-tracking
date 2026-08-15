@@ -5,6 +5,10 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, Settings, Wallet, CreditCard, Calendar1, TrendingUp } from "lucide-react";
@@ -20,6 +24,8 @@ interface SidebarProps {
   setIsCreateWalletOpen: (open: boolean) => void;
   setIsAdjustBalanceOpen: (open: boolean) => void;
   setIsPortionIncomeOpen: (open: boolean) => void;
+  setIsRenameWalletOpen: (open: boolean) => void;
+  setIsCreateSubWalletOpen: (open: boolean) => void;
   selectedDate: Date | undefined;
   setSelectedDate: (date: Date | undefined) => void;
   income: number;
@@ -37,6 +43,8 @@ export default function Sidebar({
   setIsCreateWalletOpen,
   setIsAdjustBalanceOpen,
   setIsPortionIncomeOpen,
+  setIsRenameWalletOpen,
+  setIsCreateSubWalletOpen,
   selectedDate,
   setSelectedDate,
   income,
@@ -67,26 +75,49 @@ export default function Sidebar({
                   {activeWallet ? activeWallet.name : "Select Account"}
                 </span>
               </div>
-              <ChevronDown className="h-4 w-4 text-zinc-500 shrink-0" />
+              <ChevronDown className="h-4 w-4 text-zinc-505 shrink-0" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width] bg-zinc-950 border-zinc-900 text-zinc-100">
-            {wallets.map((wallet) => (
-              <DropdownMenuItem
-                key={wallet.id}
-                onClick={() => setActiveWalletId(wallet.id)}
-                className={`cursor-pointer justify-between uppercase tracking-wider font-semibold focus:bg-zinc-900 focus:text-zinc-100 ${
-                  wallet.id === activeWalletId
-                    ? "text-emerald-400 font-extrabold"
-                    : "text-zinc-400 hover:text-zinc-200"
-                }`}
-              >
-                {wallet.name}
-                {wallet.id === activeWalletId && (
-                  <span className="p-1 rounded-full bg-emerald-400"></span>
-                )}
-              </DropdownMenuItem>
-            ))}
+          <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width] bg-zinc-950 border-zinc-900 text-zinc-100 max-h-80 overflow-y-auto">
+            {wallets.filter(w => !w.parent_id).map((parent) => {
+              const childWallets = wallets.filter((w) => w.parent_id === parent.id);
+              return (
+                <div key={parent.id}>
+                  <DropdownMenuItem
+                    onClick={() => setActiveWalletId(parent.id)}
+                    className={`cursor-pointer justify-between uppercase tracking-wider font-bold focus:bg-zinc-900 focus:text-zinc-100 ${
+                      parent.id === activeWalletId
+                        ? "text-emerald-400 font-extrabold"
+                        : "text-zinc-400 hover:text-zinc-200"
+                    }`}
+                  >
+                    {parent.name}
+                    {parent.id === activeWalletId && (
+                      <span className="p-1 rounded-full bg-emerald-400"></span>
+                    )}
+                  </DropdownMenuItem>
+                  {childWallets.map((child) => (
+                    <DropdownMenuItem
+                      key={child.id}
+                      onClick={() => setActiveWalletId(child.id)}
+                      className={`cursor-pointer justify-between uppercase tracking-wider font-semibold focus:bg-zinc-900 focus:text-zinc-100 pl-6 py-1 text-[11px] ${
+                        child.id === activeWalletId
+                          ? "text-emerald-400 font-extrabold"
+                          : "text-zinc-450 hover:text-zinc-200"
+                      }`}
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <span className="text-zinc-600 font-normal">↳</span>
+                        {child.name}
+                      </span>
+                      {child.id === activeWalletId && (
+                        <span className="p-1 rounded-full bg-emerald-400"></span>
+                      )}
+                    </DropdownMenuItem>
+                  ))}
+                </div>
+              );
+            })}
           </DropdownMenuContent>
         </DropdownMenu>
 
@@ -123,6 +154,47 @@ export default function Sidebar({
             >
               Portion the Income
             </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => setIsRenameWalletOpen(true)}
+              className="cursor-pointer font-semibold text-xs focus:bg-zinc-900 focus:text-zinc-100 text-zinc-400 hover:text-zinc-250 py-2.5"
+            >
+              Rename Account
+            </DropdownMenuItem>
+            {activeWallet && !activeWallet.parent_id && (
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="cursor-pointer font-semibold text-xs focus:bg-zinc-900 focus:text-zinc-100 text-zinc-400 hover:text-zinc-250 py-2.5">
+                  Sub Wallets
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="bg-zinc-950 border border-zinc-900 text-zinc-100">
+                  <DropdownMenuItem
+                    onClick={() => setIsCreateSubWalletOpen(true)}
+                    className="cursor-pointer font-semibold text-xs focus:bg-zinc-900 focus:text-zinc-100 text-zinc-450 hover:text-zinc-200 py-2"
+                  >
+                    Create Sub Wallet
+                  </DropdownMenuItem>
+                  {wallets.filter(w => w.parent_id === activeWallet.id).length > 0 && (
+                    <>
+                      <DropdownMenuSeparator className="bg-zinc-900" />
+                      {wallets
+                        .filter(w => w.parent_id === activeWallet.id)
+                        .map((sub) => (
+                          <DropdownMenuItem
+                            key={sub.id}
+                            onClick={() => setActiveWalletId(sub.id)}
+                            className={`cursor-pointer font-semibold text-xs focus:bg-zinc-900 focus:text-zinc-100 py-2 justify-between ${
+                              sub.id === activeWalletId
+                                ? "text-emerald-400 font-extrabold"
+                                : "text-zinc-450 hover:text-zinc-200"
+                            }`}
+                          >
+                            {sub.name}
+                          </DropdownMenuItem>
+                        ))}
+                    </>
+                  )}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

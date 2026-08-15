@@ -6,6 +6,7 @@ export type Wallet = {
   name: string;
   balance: number;
   updated_at: string;
+  parent_id?: number | null;
 };
 
 export type Transaction = {
