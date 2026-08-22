@@ -14,6 +14,8 @@ import type {
   UpcomingExpense,
 } from "@/lib/types";
 import { formatCurrency } from "@/lib/format";
+import { Download } from "lucide-react";
+import { generatePaydayStatement } from "@/lib/pdf";
 
 import {
   getTrackerData,
@@ -41,6 +43,7 @@ export function ExpenseTracker() {
   const [error, setError] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [isPdfLoading, setIsPdfLoading] = useState(false);
 
   const [activeTab, setActiveTab] = useState<"ledger" | "upcoming">("ledger");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -238,6 +241,25 @@ export function ExpenseTracker() {
     }
   }
 
+  async function handleDownloadPDF() {
+    setIsPdfLoading(true);
+    setError(null);
+    try {
+      await generatePaydayStatement({
+        wallets,
+        activeWallet,
+        transactions,
+        userEmail,
+      });
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to generate PDF statement.",
+      );
+    } finally {
+      setIsPdfLoading(false);
+    }
+  }
+
   const activeWalletTransactions =
     activeWalletId !== null
       ? transactions.filter((t) => t.wallet_id === activeWalletId)
@@ -346,32 +368,44 @@ export function ExpenseTracker() {
                   </button>
                 </div>
 
-                <div className="text-xs text-zinc-400 font-semibold tracking-wider uppercase">
+                <div className="flex items-center gap-4 shrink-0">
+                  <div className="text-xs text-zinc-400 font-semibold tracking-wider uppercase">
+                    {activeTab === "ledger" && (
+                      <>
+                        <span className="text-emerald-455 font-bold mr-1">
+                          {displayedTransactions.length}
+                        </span>
+                        {selectedDateStr
+                          ? "Entries on this Day"
+                          : "Total Transactions"}
+                        {selectedDateStr && (
+                          <button
+                            onClick={() => setSelectedDate(undefined)}
+                            className="ml-2 px-1.5 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-[10px] text-zinc-400 font-bold border border-zinc-800 transition cursor-pointer"
+                          >
+                            Clear Date
+                          </button>
+                        )}
+                      </>
+                    )}
+                    {activeTab === "upcoming" && (
+                      <>
+                        <span className="text-emerald-455 font-bold mr-1">
+                          {activeUpcomingExpenses.length}
+                        </span>
+                        Reminders Pending
+                      </>
+                    )}
+                  </div>
                   {activeTab === "ledger" && (
-                    <>
-                      <span className="text-emerald-455 font-bold mr-1">
-                        {displayedTransactions.length}
-                      </span>
-                      {selectedDateStr
-                        ? "Entries on this Day"
-                        : "Total Transactions"}
-                      {selectedDateStr && (
-                        <button
-                          onClick={() => setSelectedDate(undefined)}
-                          className="ml-2 px-1.5 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-[10px] text-zinc-400 font-bold border border-zinc-800 transition cursor-pointer"
-                        >
-                          Clear Date
-                        </button>
-                      )}
-                    </>
-                  )}
-                  {activeTab === "upcoming" && (
-                    <>
-                      <span className="text-emerald-455 font-bold mr-1">
-                        {activeUpcomingExpenses.length}
-                      </span>
-                      Reminders Pending
-                    </>
+                    <button
+                      onClick={handleDownloadPDF}
+                      disabled={isPdfLoading || loading}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10 transition px-3 py-1.5 text-[10px] font-bold text-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer uppercase tracking-wider h-8"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      {isPdfLoading ? "Exporting..." : "Account Statement"}
+                    </button>
                   )}
                 </div>
               </div>
