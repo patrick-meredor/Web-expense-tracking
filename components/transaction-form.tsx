@@ -49,8 +49,8 @@ export function TransactionForm({
   const isExpense = parseFloat(amount) < 0 || amount.startsWith("-");
   const autoDesc = category === "Bank Transfer" && targetWallet
     ? (isExpense
-        ? `TRANSFER TO ${targetWallet.name.toUpperCase()}`
-        : `RECEIVED FROM ${targetWallet.name.toUpperCase()}`)
+        ? `Transfer to ${targetWallet.name}`
+        : `Received from ${targetWallet.name}`)
     : "";
 
   const displayedDescription = description || autoDesc;
