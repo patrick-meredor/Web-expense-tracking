@@ -5,10 +5,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuSubContent,
-  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, Settings, Wallet, CreditCard, Calendar1, TrendingUp } from "lucide-react";
@@ -161,39 +157,12 @@ export default function Sidebar({
               Rename Account
             </DropdownMenuItem>
             {activeWallet && !activeWallet.parent_id && (
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger className="cursor-pointer font-semibold text-xs focus:bg-zinc-900 focus:text-zinc-100 text-zinc-400 hover:text-zinc-250 py-2.5">
-                  Sub Wallets
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent className="bg-zinc-950 border border-zinc-900 text-zinc-100">
-                  <DropdownMenuItem
-                    onClick={() => setIsCreateSubWalletOpen(true)}
-                    className="cursor-pointer font-semibold text-xs focus:bg-zinc-900 focus:text-zinc-100 text-zinc-450 hover:text-zinc-200 py-2"
-                  >
-                    Create Sub Wallet
-                  </DropdownMenuItem>
-                  {wallets.filter(w => w.parent_id === activeWallet.id).length > 0 && (
-                    <>
-                      <DropdownMenuSeparator className="bg-zinc-900" />
-                      {wallets
-                        .filter(w => w.parent_id === activeWallet.id)
-                        .map((sub) => (
-                          <DropdownMenuItem
-                            key={sub.id}
-                            onClick={() => setActiveWalletId(sub.id)}
-                            className={`cursor-pointer font-semibold text-xs focus:bg-zinc-900 focus:text-zinc-100 py-2 justify-between ${
-                              sub.id === activeWalletId
-                                ? "text-emerald-400 font-extrabold"
-                                : "text-zinc-450 hover:text-zinc-200"
-                            }`}
-                          >
-                            {sub.name}
-                          </DropdownMenuItem>
-                        ))}
-                    </>
-                  )}
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
+              <DropdownMenuItem
+                onClick={() => setIsCreateSubWalletOpen(true)}
+                className="cursor-pointer font-semibold text-xs focus:bg-zinc-900 focus:text-zinc-100 text-zinc-400 hover:text-zinc-250 py-2.5"
+              >
+                Create Sub Wallet
+              </DropdownMenuItem>
             )}
           </DropdownMenuContent>
         </DropdownMenu>
