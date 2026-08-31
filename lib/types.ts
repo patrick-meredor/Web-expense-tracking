@@ -30,3 +30,16 @@ export type UpcomingExpense = {
   date: string | null;
   created_at: string;
 };
+
+export interface AppNotification {
+  id: string;
+  key: string;
+  title: string;
+  message: string;
+  type: "info" | "warning" | "danger";
+  createdAt: string;
+  amount?: number;
+  expenseId?: string;
+  walletName?: string;
+}
+
