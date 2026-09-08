@@ -10,7 +10,8 @@ import {
   Film, 
   Activity, 
   MoreHorizontal,
-  type LucideIcon
+  type LucideIcon,
+  BriefcaseBusiness,
 } from "lucide-react";
 import type { Category } from "./types";
 
@@ -26,6 +27,7 @@ export const CATEGORIES: Category[] = [
   "Education",
   "Entertainment",
   "Health",
+  "Business"
 ];
 
 export const CATEGORY_COLORS = {
@@ -40,6 +42,7 @@ export const CATEGORY_COLORS = {
   Education: "bg-blue-900/40 text-blue-200 border-blue-500/10",
   "Bank Transfer": "bg-slate-800/60 text-slate-300 border-slate-700/20",
   Other: "bg-zinc-900/40 text-zinc-400 border-zinc-800",
+  Business: "bg-red-900/40 text-red-200 border-red-500/10",
 };
 
 export const CATEGORY_CONFIGS: Record<Category, {
@@ -96,6 +99,11 @@ export const CATEGORY_CONFIGS: Record<Category, {
     icon: Activity,
     iconBg: "bg-cyan-500/10 border-cyan-500/20",
     badgeStyle: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
+  },
+  Business: {
+    icon: BriefcaseBusiness,
+    iconBg: "bg-red-500/10 border-red-500/20",
+    badgeStyle: "bg-red-500/10 text-red-400 border-red-500/20",
   },
   Other: {
     icon: MoreHorizontal,
