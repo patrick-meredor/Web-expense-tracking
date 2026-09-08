@@ -416,7 +416,7 @@ export default function Header({
             ) : (
               <>
                 <LogOut className="h-3.5 w-3.5" />
-                <span>Log out</span>
+                <span className="hidden sm:inline">Log out</span>
               </>
             )}
           </button>
