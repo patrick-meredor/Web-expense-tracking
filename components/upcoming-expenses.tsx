@@ -126,8 +126,8 @@ export function UpcomingExpenses({
                 const detailsStr = ue.details || "";
                 let itemCategory: Category = "Bills";
                 let displayDetails = detailsStr;
-                const match = detailsStr.match(/^\[(Food|Bills|Transport|Income|Other|Bank Transfer|Shopping|Travel|Education|Entertainment|Health)\]\s*(.*)/);
-                if (match) {
+                const match = detailsStr.match(/^\[(.*?)\]\s*(.*)/);
+                if (match && CATEGORIES.includes(match[1] as Category)) {
                   itemCategory = match[1] as Category;
                   displayDetails = match[2];
                 }

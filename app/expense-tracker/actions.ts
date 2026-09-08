@@ -8,6 +8,7 @@ import type {
   Wallet,
   UpcomingExpense,
 } from "@/lib/types";
+import { CATEGORIES } from "@/lib/constants";
 
 export async function getTrackerData() {
   const cookieStore = await cookies();
@@ -416,9 +417,9 @@ export async function payUpcomingExpenseRecord(
   let category: Category = "Bills";
   let displayDetails = detailsStr;
   const match = detailsStr.match(
-    /^\[(Food|Bills|Transport|Income|Other|Bank Transfer|Shopping|Travel|Education|Entertainment|Health)\]\s*(.*)/,
+    /^\[(.*?)\]\s*(.*)/,
   );
-  if (match) {
+  if (match && CATEGORIES.includes(match[1] as Category)) {
     category = match[1] as Category;
     displayDetails = match[2];
   }
