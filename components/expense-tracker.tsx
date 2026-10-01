@@ -5,7 +5,16 @@ import { UpcomingExpenses } from "@/components/upcoming-expenses";
 import Header from "@/components/header";
 import Sidebar from "@/components/sidebar";
 import { formatCurrency } from "@/lib/format";
-import { Download } from "lucide-react";
+import { Download, ChevronDown, Layers, Wallet } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { Spinner } from "@/components/ui/spinner";
 import { useExpenseTracker } from "./use-expense-tracker";
 
 export function ExpenseTracker() {
@@ -176,14 +185,75 @@ export function ExpenseTracker() {
                     )}
                   </div>
                   {activeTab === "ledger" && (
-                    <button
-                      onClick={handleDownloadPDF}
-                      disabled={isPdfLoading || loading}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10 transition px-3 py-1.5 text-[10px] font-bold text-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer uppercase tracking-wider h-8"
-                    >
-                      <Download className="h-3.5 w-3.5" />
-                      {isPdfLoading ? "Exporting..." : "Account Statement"}
-                    </button>
+                    <DropdownMenu modal={false}>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          disabled={isPdfLoading || loading}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10 transition px-3 py-1.5 text-[10px] font-bold text-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer uppercase tracking-wider h-8 select-none"
+                        >
+                          {isPdfLoading ? (
+                            <>
+                              <Spinner className="h-3.5 w-3.5" />
+                              Exporting...
+                            </>
+                          ) : (
+                            <>
+                              <Download className="h-3.5 w-3.5" />
+                              Account Statement
+                              <ChevronDown className="h-3 w-3 opacity-70 ml-0.5" />
+                            </>
+                          )}
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        align="end"
+                        className="w-64 bg-zinc-950/95 backdrop-blur-md border border-zinc-800 rounded-xl p-1.5 shadow-2xl text-zinc-100 z-50"
+                      >
+                        <DropdownMenuLabel className="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                          Download Statement
+                        </DropdownMenuLabel>
+                        
+                        <DropdownMenuItem
+                          onClick={() => handleDownloadPDF("all")}
+                          className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer text-xs font-semibold text-zinc-200 hover:text-emerald-400 hover:bg-emerald-500/10 focus:bg-emerald-500/10 focus:text-emerald-400 transition group"
+                        >
+                          <div className="p-1.5 rounded-md bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500/20 shrink-0">
+                            <Layers className="h-3.5 w-3.5" />
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-bold flex items-center gap-1.5 text-zinc-100 group-hover:text-emerald-400">
+                              All Accounts
+                              <span className="text-[9px] px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-400 font-bold uppercase">
+                                All
+                              </span>
+                            </span>
+                            <span className="text-[10px] text-zinc-400 font-normal">
+                              All wallets & transactions
+                            </span>
+                          </div>
+                        </DropdownMenuItem>
+
+                        <DropdownMenuSeparator className="my-1 bg-zinc-800/80" />
+
+                        <DropdownMenuItem
+                          onClick={() => handleDownloadPDF("active")}
+                          disabled={!activeWallet}
+                          className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer text-xs font-semibold text-zinc-200 hover:text-emerald-400 hover:bg-emerald-500/10 focus:bg-emerald-500/10 focus:text-emerald-400 transition group disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          <div className="p-1.5 rounded-md bg-zinc-800 text-zinc-400 group-hover:bg-emerald-500/20 group-hover:text-emerald-400 shrink-0">
+                            <Wallet className="h-3.5 w-3.5" />
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-bold text-zinc-100 group-hover:text-emerald-400">
+                              Current Account
+                            </span>
+                            <span className="text-[10px] text-zinc-400 font-normal truncate">
+                              {activeWallet ? activeWallet.name : "No account selected"}
+                            </span>
+                          </div>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   )}
                 </div>
               </div>

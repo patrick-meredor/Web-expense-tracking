@@ -235,7 +235,7 @@ export function useExpenseTracker() {
     }
   }
 
-  async function handleDownloadPDF() {
+  async function handleDownloadPDF(scope: "all" | "active" = "all") {
     setIsPdfLoading(true);
     setError(null);
     try {
@@ -244,6 +244,7 @@ export function useExpenseTracker() {
         activeWallet,
         transactions,
         userEmail,
+        scope,
       });
     } catch (err) {
       setError(

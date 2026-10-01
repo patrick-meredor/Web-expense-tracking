@@ -3,9 +3,10 @@ import { formatCurrency } from "./format";
 
 interface GeneratePDFParams {
   wallets: Wallet[];
-  activeWallet: Wallet | null;
+  activeWallet?: Wallet | null;
   transactions: Transaction[];
   userEmail?: string | null;
+  scope?: "all" | "active";
 }
 
 export async function generatePaydayStatement({
@@ -13,6 +14,7 @@ export async function generatePaydayStatement({
   activeWallet,
   transactions,
   userEmail,
+  scope = "all",
 }: GeneratePDFParams) {
   const { jsPDF } = await import("jspdf");
   const { default: autoTable } = await import("jspdf-autotable");
@@ -130,15 +132,34 @@ export async function generatePaydayStatement({
       .join(" ");
   }
 
-  // Filter transactions for the active wallet if one is selected
-  const activeWalletName = activeWallet ? activeWallet.name.toUpperCase() : "ALL ACCOUNTS";
-  const activeWalletTransactions = activeWallet
-    ? transactions.filter((t) => t.wallet_id === activeWallet.id)
-    : transactions;
+  // Determine scope
+  const isAllAccounts = scope === "all" || !activeWallet;
+  const targetWallets = isAllAccounts
+    ? wallets
+    : activeWallet
+      ? [activeWallet]
+      : wallets;
+
+  const statementTransactions = isAllAccounts
+    ? transactions
+    : activeWallet
+      ? transactions.filter((t) => t.wallet_id === activeWallet.id)
+      : transactions;
+
+  // Chronologically sort transactions (newest first)
+  const sortedTransactions = [...statementTransactions].sort((a, b) => {
+    const timeA = new Date(a.date).getTime();
+    const timeB = new Date(b.date).getTime();
+    if (timeB !== timeA) return timeB - timeA;
+    if (a.created_at && b.created_at) {
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    }
+    return 0;
+  });
 
   // Date coverage calculation
   let dateCoverageStr = "";
-  const txDates = activeWalletTransactions
+  const txDates = sortedTransactions
     .map((t) => new Date(t.date).getTime())
     .filter((time) => !isNaN(time));
 
@@ -166,10 +187,14 @@ export async function generatePaydayStatement({
   setSafeFont("Inter", "normal");
   doc.setFontSize(9);
   doc.setTextColor(80, 80, 80);
-  doc.text("No. of Accounts: ", 14, 47);
+  doc.text(isAllAccounts ? "No. of Accounts: " : "Account: ", 14, 47);
   setSafeFont("Inter", "bold");
   doc.setTextColor(0, 0, 0);
-  doc.text(String(wallets.length), 42, 47);
+  doc.text(
+    isAllAccounts ? String(wallets.length) : (activeWallet?.name || "N/A"),
+    isAllAccounts ? 42 : 30,
+    47
+  );
 
   setSafeFont("Inter", "normal");
   doc.setTextColor(80, 80, 80);
@@ -186,9 +211,11 @@ export async function generatePaydayStatement({
   // Accounts legend list
   const walletListStartY = 68;
   const walletSpacing = 6.5;
-  wallets.forEach((w, idx) => {
+  targetWallets.forEach((w, idx) => {
     const walletY = walletListStartY + idx * walletSpacing;
-    const color = walletColors[idx % walletColors.length];
+    const originalIdx = wallets.findIndex((item) => item.id === w.id);
+    const colorIdx = originalIdx >= 0 ? originalIdx : idx;
+    const color = walletColors[colorIdx % walletColors.length];
 
     // Circle color indicator
     doc.setFillColor(color[0], color[1], color[2]);
@@ -211,42 +238,50 @@ export async function generatePaydayStatement({
   const cy = 68;
   const radius = 25;
 
-  const positiveBalances = wallets.map((w) => Math.max(0, w.balance));
-  const totalPositive = positiveBalances.reduce((sum, b) => sum + b, 0);
-
-  const proportions = totalPositive > 0
-    ? positiveBalances.map((b) => b / totalPositive)
-    : wallets.map(() => 1 / wallets.length);
-
-  let currentAngle = -Math.PI / 2; // Start at 12 o'clock
-  for (let i = 0; i < wallets.length; i++) {
-    const sliceAngle = proportions[i] * 2 * Math.PI;
-    if (sliceAngle <= 0) continue;
-
-    const color = walletColors[i % walletColors.length];
-
-    const pathOps = [
-      { op: "m", c: [cx, cy] }
-    ];
-
-    const steps = Math.max(16, Math.ceil(sliceAngle / 0.03));
-    for (let j = 0; j <= steps; j++) {
-      const angle = currentAngle + sliceAngle * (j / steps);
-      const x = cx + radius * Math.cos(angle);
-      const y = cy + radius * Math.sin(angle);
-      pathOps.push({ op: "l", c: [x, y] });
-    }
-    pathOps.push({ op: "h", c: [] });
-
+  if (targetWallets.length === 1) {
+    const originalIdx = wallets.findIndex((item) => item.id === targetWallets[0].id);
+    const color = walletColors[(originalIdx >= 0 ? originalIdx : 0) % walletColors.length];
     doc.setFillColor(color[0], color[1], color[2]);
-    doc.path(pathOps);
-    doc.fill();
+    doc.ellipse(cx, cy, radius, radius, "F");
+  } else {
+    const positiveBalances = targetWallets.map((w) => Math.max(0, w.balance));
+    const totalPositive = positiveBalances.reduce((sum, b) => sum + b, 0);
 
-    currentAngle += sliceAngle;
+    const proportions = totalPositive > 0
+      ? positiveBalances.map((b) => b / totalPositive)
+      : targetWallets.map(() => 1 / Math.max(1, targetWallets.length));
+
+    let currentAngle = -Math.PI / 2; // Start at 12 o'clock
+    for (let i = 0; i < targetWallets.length; i++) {
+      const sliceAngle = proportions[i] * 2 * Math.PI;
+      if (sliceAngle <= 0) continue;
+
+      const originalIdx = wallets.findIndex((item) => item.id === targetWallets[i].id);
+      const color = walletColors[(originalIdx >= 0 ? originalIdx : i) % walletColors.length];
+
+      const pathOps = [
+        { op: "m", c: [cx, cy] }
+      ];
+
+      const steps = Math.max(16, Math.ceil(sliceAngle / 0.03));
+      for (let j = 0; j <= steps; j++) {
+        const angle = currentAngle + sliceAngle * (j / steps);
+        const x = cx + radius * Math.cos(angle);
+        const y = cy + radius * Math.sin(angle);
+        pathOps.push({ op: "l", c: [x, y] });
+      }
+      pathOps.push({ op: "h", c: [] });
+
+      doc.setFillColor(color[0], color[1], color[2]);
+      doc.path(pathOps);
+      doc.fill();
+
+      currentAngle += sliceAngle;
+    }
   }
 
   // Calculate dynamic start Y of the Transactions section on Page 1 to avoid overlap
-  const walletListEndY = walletListStartY + wallets.length * walletSpacing;
+  const walletListEndY = walletListStartY + targetWallets.length * walletSpacing;
   const pieChartEndY = cy + radius;
   const transactionsTitleY = Math.max(112, walletListEndY + 8, pieChartEndY + 8);
   const transactionsLineY = transactionsTitleY + 3;
@@ -256,7 +291,10 @@ export async function generatePaydayStatement({
   setSafeFont("Inter", "bold");
   doc.setFontSize(14);
   doc.setTextColor(0, 0, 0);
-  doc.text("Transactions Entries", 14, transactionsTitleY);
+  const tableTitle = isAllAccounts
+    ? "Transactions Entries"
+    : `Transactions Entries (${activeWallet?.name || "Account"})`;
+  doc.text(tableTitle, 14, transactionsTitleY);
 
   // Bold line below title
   doc.setDrawColor(0, 0, 0);
@@ -264,8 +302,8 @@ export async function generatePaydayStatement({
   doc.line(14, transactionsLineY, 196, transactionsLineY);
 
   // Build rows data
-  const txHeaders = [["Transaction date", "Account name", "Category", "Amount", "Desciption"]];
-  const txRows = activeWalletTransactions.map((t) => {
+  const txHeaders = [["Transaction date", "Account name", "Category", "Amount", "Description"]];
+  const txRows = sortedTransactions.map((t) => {
     const isIncome = t.amount >= 0;
     const cleanAmount = formatBalanceWithPeso(Math.abs(t.amount));
     const formattedAmount = `${isIncome ? "+" : "-"}${cleanAmount}`;
@@ -349,7 +387,10 @@ export async function generatePaydayStatement({
     setSafeFont("Inter", "bold");
     doc.setFontSize(11);
     doc.setTextColor(0, 0, 0);
-    doc.text("Statement of Account", 196, 14, { align: "right" });
+    const headerTitle = isAllAccounts
+      ? "Statement of Account"
+      : `Statement - ${activeWallet?.name || "Account"}`;
+    doc.text(headerTitle, 196, 14, { align: "right" });
 
     setSafeFont("Inter", "normal");
     doc.setFontSize(8);
@@ -380,7 +421,7 @@ export async function generatePaydayStatement({
       setSafeFont("Inter", "bold");
       doc.setFontSize(14);
       doc.setTextColor(0, 0, 0);
-      doc.text("Transactions Entries", 14, 33);
+      doc.text(tableTitle, 14, 33);
 
       // Divider line
       doc.setDrawColor(0, 0, 0);
@@ -390,6 +431,9 @@ export async function generatePaydayStatement({
   }
 
   // Save the generated document
-  const filename = `Account_Statement_${userName.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.pdf`;
+  const scopeTag = isAllAccounts
+    ? "All_Accounts"
+    : (activeWallet?.name || "Account").replace(/[^a-zA-Z0-9_-]/g, "_");
+  const filename = `Account_Statement_${scopeTag}_${userName.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.pdf`;
   doc.save(filename);
 }
