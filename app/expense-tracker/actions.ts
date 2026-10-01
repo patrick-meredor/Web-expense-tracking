@@ -170,13 +170,13 @@ export async function addTransactionRecord(
     const sourceDesc =
       data.description ||
       (isSourceDeduction
-        ? `TRANSFER TO ${targetWallet.name.toUpperCase()}`
-        : `RECEIVED FROM ${targetWallet.name.toUpperCase()}`);
+        ? `Transfer to ${targetWallet.name}`
+        : `Received from ${targetWallet.name}`);
 
     // Target description: e.g., "RECEIVED FROM BPI"
     const targetDesc = isSourceDeduction
-      ? `RECEIVED FROM ${sourceWallet.name.toUpperCase()}`
-      : `TRANSFER TO ${sourceWallet.name.toUpperCase()}`;
+      ? `Received from ${sourceWallet.name}`
+      : `Transfer to ${sourceWallet.name}`;
 
     // Insert source transaction
     const { error: tx1Error } = await supabase.from("transactions").insert({
@@ -271,23 +271,23 @@ export async function deleteTransactionRecord(transaction: Transaction) {
       let targetWallet: Wallet | null = null;
       let targetDescPattern = "";
 
-      const desc = transaction.description.toUpperCase();
-      if (desc.startsWith("TRANSFER TO ")) {
+      const desc = transaction.description;
+      if (desc.startsWith("Transfer to ")) {
         const targetName = transaction.description
-          .substring("TRANSFER TO ".length)
+          .substring("Transfer to ".length)
           .trim();
         targetWallet = wallets.find(
-          (w) => w.name.toUpperCase() === targetName.toUpperCase(),
+          (w) => w.name === targetName,
         );
-        targetDescPattern = `RECEIVED FROM ${sourceWallet.name.toUpperCase()}`;
-      } else if (desc.startsWith("RECEIVED FROM ")) {
+        targetDescPattern = `Received from ${sourceWallet.name}`;
+      } else if (desc.startsWith("Received from ")) {
         const targetName = transaction.description
-          .substring("RECEIVED FROM ".length)
+          .substring("Received from ".length)
           .trim();
         targetWallet = wallets.find(
-          (w) => w.name.toUpperCase() === targetName.toUpperCase(),
+          (w) => w.name === targetName,
         );
-        targetDescPattern = `TRANSFER TO ${sourceWallet.name.toUpperCase()}`;
+        targetDescPattern = `Transfer to ${sourceWallet.name}`;
       }
 
       if (targetWallet) {
