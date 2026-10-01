@@ -282,7 +282,7 @@ export default function Header({
                   className="fixed inset-0 z-40 cursor-default" 
                   onClick={() => setIsNotificationsOpen(false)} 
                 />
-                <div className="absolute right-0 mt-3.5 w-80 sm:w-96 rounded-2xl border border-zinc-900 bg-zinc-950/95 backdrop-blur-md p-4 shadow-2xl z-50 animate-fade-in flex flex-col gap-3">
+                <div className="fixed left-3 right-3 top-[84px] sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-3.5 sm:w-80 md:w-96 max-w-[calc(100vw-1.5rem)] max-h-[calc(100vh-6.5rem)] rounded-2xl border border-zinc-900 bg-zinc-950/95 backdrop-blur-md p-4 shadow-2xl z-50 animate-fade-in flex flex-col gap-3">
                   <div className="flex items-center justify-between border-b border-zinc-900 pb-2">
                     <h4 className="text-[11px] font-bold uppercase tracking-wider text-zinc-100">
                       Notifications ({unreadCount})
