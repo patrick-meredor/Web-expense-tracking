@@ -15,6 +15,7 @@ export type Transaction = {
   user_id?: string;
   amount: number;
   description: string;
+  notes?: string | null;
   category: Category;
   date: string;
   created_at: string;

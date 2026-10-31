@@ -125,6 +125,7 @@ export async function addTransactionRecord(
   data: {
     amount: number;
     description: string;
+    notes?: string;
     category: Category;
     date: string;
     toWalletId?: number;
@@ -179,25 +180,37 @@ export async function addTransactionRecord(
       : `Transfer to ${sourceWallet.name}`;
 
     // Insert source transaction
-    const { error: tx1Error } = await supabase.from("transactions").insert({
+    const tx1Payload: Record<string, unknown> = {
       amount: amount,
       description: sourceDesc,
       category: data.category,
       date: data.date,
       wallet_id: walletId,
-    });
+      ...(data.notes ? { notes: data.notes } : {}),
+    };
+    let { error: tx1Error } = await supabase.from("transactions").insert(tx1Payload);
+    if (tx1Error && data.notes && tx1Error.message.toLowerCase().includes("notes")) {
+      delete tx1Payload.notes;
+      const retry = await supabase.from("transactions").insert(tx1Payload);
+      tx1Error = retry.error;
+    }
     if (tx1Error) throw new Error(tx1Error.message);
-
     // Insert target transaction
-    const { error: tx2Error } = await supabase.from("transactions").insert({
+    const tx2Payload: Record<string, unknown> = {
       amount: -amount,
       description: targetDesc,
       category: data.category,
       date: data.date,
       wallet_id: data.toWalletId,
-    });
+      ...(data.notes ? { notes: data.notes } : {}),
+    };
+    let { error: tx2Error } = await supabase.from("transactions").insert(tx2Payload);
+    if (tx2Error && data.notes && tx2Error.message.toLowerCase().includes("notes")) {
+      delete tx2Payload.notes;
+      const retry = await supabase.from("transactions").insert(tx2Payload);
+      tx2Error = retry.error;
+    }
     if (tx2Error) throw new Error(tx2Error.message);
-
     // Update source wallet balance
     const { error: wallet1Error } = await supabase
       .from("wallet")
@@ -220,15 +233,21 @@ export async function addTransactionRecord(
   } else {
     // Normal single transaction insertion
     // 1. Insert transaction
-    const { error: txError } = await supabase.from("transactions").insert({
+    const txPayload: Record<string, unknown> = {
       amount: data.amount,
       description: data.description,
       category: data.category,
       date: data.date,
       wallet_id: walletId,
-    });
+      ...(data.notes ? { notes: data.notes } : {}),
+    };
+    let { error: txError } = await supabase.from("transactions").insert(txPayload);
+    if (txError && data.notes && txError.message.toLowerCase().includes("notes")) {
+      delete txPayload.notes;
+      const retry = await supabase.from("transactions").insert(txPayload);
+      txError = retry.error;
+    }
     if (txError) throw new Error(txError.message);
-
     // 2. Adjust balance
     const { error: walletError } = await supabase
       .from("wallet")

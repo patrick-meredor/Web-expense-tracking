@@ -129,6 +129,7 @@ export function useExpenseTracker() {
   async function handleAddTransaction(data: {
     amount: number;
     description: string;
+    notes?: string;
     category: Category;
     date: string;
     toWalletId?: number;

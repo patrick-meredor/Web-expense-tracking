@@ -9,6 +9,7 @@ type TransactionFormProps = {
   onSubmit: (data: {
     amount: number;
     description: string;
+    notes?: string;
     category: Category;
     date: string;
     toWalletId?: number;
@@ -26,6 +27,7 @@ export function TransactionForm({
 }: TransactionFormProps) {
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
+  const [notes, setNotes] = useState("");
   const [category, setCategory] = useState<Category>("Food");
   const [date, setDate] = useState(todayISO());
   const [submitting, setSubmitting] = useState(false);
@@ -81,12 +83,14 @@ export function TransactionForm({
       await onSubmit({ 
         amount: parsed, 
         description: displayedDescription, 
+        notes: notes.trim() || undefined,
         category, 
         date, 
         toWalletId: effectiveToWalletId 
       });
       setAmount("");
       setDescription("");
+      setNotes("");
       setCategory("Food");
       setDate(todayISO());
       setToWalletId(undefined);
@@ -167,6 +171,18 @@ export function TransactionForm({
           placeholder="Grocery, Coffee, Salary…"
           value={displayedDescription}
           onChange={(e) => setDescription(e.target.value)}
+          className="w-full rounded-lg border border-zinc-800 bg-zinc-950/80 px-3.5 py-2 text-sm text-zinc-100 placeholder:text-zinc-650 outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition duration-200"
+        />
+      </label>
+
+      <label className="block">
+        <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">Notes</span>
+        <input
+          type="text"
+          name="Notes"
+          placeholder="Add a note or explanation…"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
           className="w-full rounded-lg border border-zinc-800 bg-zinc-950/80 px-3.5 py-2 text-sm text-zinc-100 placeholder:text-zinc-650 outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition duration-200"
         />
       </label>

@@ -14,6 +14,7 @@ type TransactionListProps = {
   onSubmit?: (data: {
     amount: number;
     description: string;
+    notes?: string;
     category: Category;
     date: string;
     toWalletId?: number;
@@ -54,6 +55,7 @@ export function TransactionList({
     const matchesCategory = selectedCategory === "All" || tx.category === selectedCategory;
     const matchesSearch = 
       (tx.description || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (tx.notes || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
       tx.category.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
@@ -165,6 +167,11 @@ export function TransactionList({
                     <p className="mt-1.5 text-xs font-bold text-zinc-100 truncate">
                       {tx.description || "Untitled Transaction"}
                     </p>
+                    {tx.notes && (
+                      <p className="mt-0.5 text-[11px] text-zinc-400 truncate" title={tx.notes}>
+                        {tx.notes}
+                      </p>
+                    )}
                     <span className="text-[10px] text-zinc-500 font-semibold mt-0.5">
                       {formatDateTime(tx.date, tx.created_at)}
                     </span>
